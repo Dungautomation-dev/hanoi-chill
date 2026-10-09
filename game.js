@@ -1058,6 +1058,7 @@
     player.nitro = player.maxNitro;
 
     spawnStartingGridOpponents();
+    showControlsHint(5);
     showBanner('BẮT ĐẦU CHẶNG MỚI! 🏍️', 'NHẤN [W] ĐỂ PHÓNG GA! ĐẠP HẠ GỤC ĐỐI THỦ!');
   }
 
@@ -1212,6 +1213,39 @@
     }, 2400);
   }
 
+  // --- QUẢN LÝ BẢNG HƯỚNG DẪN PHÍM TẮT (TỰ ẨN 5S & BẬT LẠI KHI CẦN) ---
+  let hintPanelTimeout = null;
+
+  function showControlsHint(autoHideSeconds = 5) {
+    const panel = document.getElementById('controls-hint-panel');
+    if (!panel) return;
+    panel.classList.remove('hidden');
+
+    if (hintPanelTimeout) clearTimeout(hintPanelTimeout);
+    if (autoHideSeconds > 0) {
+      hintPanelTimeout = setTimeout(() => {
+        panel.classList.add('hidden');
+      }, autoHideSeconds * 1000);
+    }
+  }
+
+  function hideControlsHint() {
+    const panel = document.getElementById('controls-hint-panel');
+    if (!panel) return;
+    panel.classList.add('hidden');
+    if (hintPanelTimeout) clearTimeout(hintPanelTimeout);
+  }
+
+  function toggleControlsHint() {
+    const panel = document.getElementById('controls-hint-panel');
+    if (!panel) return;
+    if (panel.classList.contains('hidden')) {
+      showControlsHint(7); // Khi bấm xem lại thì mở trong 7 giây
+    } else {
+      hideControlsHint();
+    }
+  }
+
   function setupInputEvents() {
     window.addEventListener('keydown', e => {
       initAudio();
@@ -1227,6 +1261,12 @@
       if (k === 'j') executeKick('left');
       if (k === 'k') executeKick('right');
       if (k === 'h') playHorn();
+
+      // Bấm F1 hoặc ? để bật/tắt hướng dẫn phím
+      if (k === 'f1' || e.key === '?') {
+        e.preventDefault();
+        toggleControlsHint();
+      }
     });
 
     window.addEventListener('keyup', e => {
@@ -1245,6 +1285,10 @@
     });
 
     window.addEventListener('contextmenu', e => e.preventDefault());
+
+    // Nút Bật/Tắt hướng dẫn phím tắt & Đóng bảng
+    document.getElementById('btn-toggle-help')?.addEventListener('click', toggleControlsHint);
+    document.getElementById('btn-close-hint')?.addEventListener('click', hideControlsHint);
 
     document.getElementById('btn-sound')?.addEventListener('click', () => {
       initAudio();
@@ -1340,6 +1384,7 @@
     loadUserSave();
     initThree();
     setupInputEvents();
+    showControlsHint(5);
     showBanner('BÃO ĐÊM PHỐ CỔ 🏍️', 'NHẤN [W] ĐỂ PHÓNG GA! A=TRÁI, D=PHẢI. [J]/[K]=ĐẠP ĐỐI THỦ!');
     requestAnimationFrame(animate);
   });

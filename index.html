@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Hà Nội Midnight Rush - Bão Đêm Phố Cổ 3D 🏍️💨</title>
-  <link rel="stylesheet" href="style.css?v=3.5">
+  <link rel="stylesheet" href="style.css?v=3.7">
   <!-- Three.js 3D Engine -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
@@ -39,6 +39,7 @@
 
       <div class="hud-card top-buttons">
         <button class="action-btn garage-btn" id="btn-garage">🛠️ GARAGE XE</button>
+        <button class="action-btn help-btn" id="btn-toggle-help" title="Bật/Tắt hướng dẫn phím tắt">⌨️ PHÍM TẮT</button>
         <button class="icon-btn" id="btn-sound" title="Bật/Tắt Âm thanh">🔊</button>
         <button class="icon-btn" id="btn-horn" title="Còi Bim Bim (Phím H)">📢</button>
       </div>
@@ -50,39 +51,50 @@
       <div class="banner-sub" id="banner-sub">ĐẠP ĐỐI THỦ & ĂN BÌNH NITRO TRÊN ĐƯỜNG!</div>
     </div>
 
-    <!-- Bottom Left: Combat Controls Hint -->
-    <div class="hud-bottom-left">
-      <div class="combat-hint-box">
-        <div class="hint-title">⚔️ ĐIỀU KHIỂN & CỌ QUẸT:</div>
-        <div class="hint-row">
-          <span class="key-tag">A</span> / <span class="key-tag">D</span>: <b>Lách Trái / Phải</b>
-        </div>
-        <div class="hint-row">
-          <span class="key-tag">J</span> hoặc <span class="key-tag">Chuột Trái</span>: <b>Đạp Trái</b>
-        </div>
-        <div class="hint-row">
-          <span class="key-tag">K</span> hoặc <span class="key-tag">Chuột Phải</span>: <b>Đạp Phải</b>
-        </div>
-        <div class="hint-row">
-          <span class="key-tag">SHIFT</span> / <span class="key-tag">SPACE</span>: <b>Xịt Nitro Boost</b>
-        </div>
-        <div class="hint-row">
-          <span class="key-tag">H</span>: <b>Còi Xe Phố Cổ</b>
+    <!-- Bottom HUD (Left: Controls hint, Right: Speedometer) -->
+    <div class="hud-bottom">
+      <div class="hud-bottom-left" id="controls-hint-panel">
+        <div class="combat-hint-box">
+          <div class="hint-header">
+            <span class="hint-title">⚔️ HƯỚNG DẪN ĐIỀU KHIỂN</span>
+            <button class="hint-close-btn" id="btn-close-hint" title="Ẩn bảng hướng dẫn">&times;</button>
+          </div>
+          <div class="hint-content">
+            <div class="hint-row">
+              <span class="key-tag">A</span> / <span class="key-tag">D</span> hoặc <span class="key-tag">◀</span>/<span class="key-tag">▶</span>: <b>Lách Trái / Phải</b>
+            </div>
+            <div class="hint-row">
+              <span class="key-tag">W</span> / <span class="key-tag">S</span> hoặc <span class="key-tag">▲</span>/<span class="key-tag">▼</span>: <b>Tăng Tốc / Phanh</b>
+            </div>
+            <div class="hint-row">
+              <span class="key-tag">J</span> hoặc <span class="key-mouse">Chuột Trái</span>: <b>Đạp Trái</b>
+            </div>
+            <div class="hint-row">
+              <span class="key-tag">K</span> hoặc <span class="key-mouse">Chuột Phải</span>: <b>Đạp Phải</b>
+            </div>
+            <div class="hint-row">
+              <span class="key-tag">SHIFT</span> / <span class="key-tag">SPACE</span>: <b>Xịt Nitro Tăng Tốc</b>
+            </div>
+            <div class="hint-row">
+              <span class="key-tag">H</span>: <b>Bấm Còi Xe Phố Cổ</b>
+            </div>
+          </div>
+          <div class="hint-footer">⏱️ Tự ẩn sau 5 giây • Bấm <b>[⌨️ PHÍM TẮT]</b> để xem lại bất kỳ lúc nào</div>
         </div>
       </div>
-    </div>
 
-    <!-- Bottom Right: Speedometer & Nitro Gauge -->
-    <div class="hud-bottom-right">
-      <div class="speedo-cluster">
-        <div class="speed-number" id="hud-speed">0</div>
-        <div class="speed-unit">KM/H</div>
-        
-        <!-- Nitro Bar -->
-        <div class="nitro-bar-wrap">
-          <div class="nitro-label">NITRO BOOST (ĂN BÌNH TRÊN ĐƯỜNG)</div>
-          <div class="nitro-track">
-            <div class="nitro-fill" id="nitro-fill" style="width: 100%;"></div>
+      <!-- Bottom Right: Speedometer & Nitro Gauge -->
+      <div class="hud-bottom-right">
+        <div class="speedo-cluster">
+          <div class="speed-number" id="hud-speed">0</div>
+          <div class="speed-unit">KM/H</div>
+          
+          <!-- Nitro Bar -->
+          <div class="nitro-bar-wrap">
+            <div class="nitro-label">NITRO BOOST (ĂN BÌNH TRÊN ĐƯỜNG)</div>
+            <div class="nitro-track">
+              <div class="nitro-fill" id="nitro-fill" style="width: 100%;"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -194,6 +206,6 @@
     </div>
   </div>
 
-  <script src="game.js?v=3.6"></script>
+  <script src="game.js?v=3.7"></script>
 </body>
 </html>
