@@ -1,1392 +1,979 @@
 /**
- * game.js - Core Engine của Hà Nội Chill (Harvest Tales)
- * Kiến trúc Modular: ES6 Modules, Canvas 2D, Web Audio API, Gamepad API
+ * Hà Nội Midnight Rush - Bão Đêm Phố Cổ 3D (Road Rash Edition)
+ * Engine: Three.js WebGL 3D, Procedural City, Physics, Bike Combat & Web Audio Synth
  */
 
-import { CROPS_DATA } from './src/data/CropsData.js';
-import { NPCS_DATA } from './src/data/NPCsData.js';
-import { RECIPES_DATA, FISH_DATA, QUESTS_DATA } from './src/data/RecipesData.js';
+(function () {
+  'use strict';
 
-// --- 1. CẤU HÌNH & CANVAS ---
-const CANVAS_W = 800;
-const CANVAS_H = 480;
-const TILE_SIZE = 32; // Mỗi ô 32x32px
-const COLS = 25; // 800 / 32
-const ROWS = 15; // 480 / 32
+  // --- 1. BIẾN TOÀN CỤC & THREE.JS SETUP ---
+  let scene, camera, renderer;
+  let playerBike, playerRider;
+  const opponents = [];
+  const trafficVehicles = [];
+  const roadSegments = [];
+  const streetProps = [];
+  const sparkParticles = [];
+  const smokeParticles = [];
 
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-ctx.imageSmoothingEnabled = false;
+  const ROAD_WIDTH = 22;
+  const SEGMENT_LENGTH = 80;
+  const TOTAL_SEGMENTS = 14;
+  const VISIBLE_DISTANCE = SEGMENT_LENGTH * TOTAL_SEGMENTS;
 
-// --- 2. TẢI TÀI NGUYÊN HÌNH ẢNH (ASSETS) ---
-const ASSETS = {};
-const ASSET_LIST = [
-  { name: 'character', src: 'assets/character.png' },
-  { name: 'grass', src: 'assets/grass.png' },
-  { name: 'tilled_dirt', src: 'assets/tilled_dirt.png' },
-  { name: 'plants', src: 'assets/plants.png' },
-  { name: 'house', src: 'assets/house.png' },
-  { name: 'trees', src: 'assets/trees.png' },
-  { name: 'fences', src: 'assets/fences.png' },
-  { name: 'decorations', src: 'assets/decorations.png' },
-  { name: 'water', src: 'assets/water.png' },
-  { name: 'chest', src: 'assets/chest.png' },
-  { name: 'tools_and_materials', src: 'assets/tools_and_materials.png' }
-];
+  // Trạng thái người chơi
+  const player = {
+    x: 0,
+    z: 0,
+    speed: 0,
+    maxSpeed: 135,
+    accel: 55,
+    brake: 85,
+    handling: 16,
+    leanAngle: 0,
+    wheelieAngle: 0,
+    nitro: 100,
+    isBoosting: false,
+    kickSide: null, // 'left' | 'right' | null
+    kickTimer: 0,
+    knockouts: 0,
+    distanceTraveled: 0,
+    rank: 1,
+    crashedTimer: 0,
+    cameraView: 0 // 0: Close Chase, 1: High Far, 2: First-Person Handlebar
+  };
 
-let assetsLoaded = 0;
-let allAssetsReady = false;
+  // Trạng thái điều khiển (Controls)
+  const input = {
+    gas: false,
+    brake: false,
+    left: false,
+    right: false,
+    kickLeft: false,
+    kickRight: false,
+    boost: false
+  };
 
-function loadAssets(callback) {
-  ASSET_LIST.forEach(item => {
-    const img = new Image();
-    img.src = item.src;
-    img.onload = () => {
-      ASSETS[item.name] = img;
-      assetsLoaded++;
-      if (assetsLoaded === ASSET_LIST.length) {
-        allAssetsReady = true;
-        if (callback) callback();
-      }
-    };
-    img.onerror = () => {
-      console.warn(`Lỗi tải ảnh: ${item.src}`);
-      assetsLoaded++;
-      if (assetsLoaded === ASSET_LIST.length) {
-        allAssetsReady = true;
-        if (callback) callback();
-      }
-    };
-  });
-}
+  // Âm thanh Web Audio Synth
+  let audioCtx = null;
+  let engineOsc = null;
+  let engineGain = null;
+  let soundEnabled = true;
 
-// --- 3. BỘ TỔNG HỢP ÂM THANH RETRO (WEB AUDIO SYNTH) ---
-let audioCtx = null;
-let soundEnabled = true;
+  // --- 2. BỘ TỔNG HỢP ÂM THANH RETRO BÔ XE MÁY & VA CHẠM ---
+  function initAudio() {
+    if (audioCtx) return;
+    try {
+      const AudioClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioClass) return;
+      audioCtx = new AudioClass();
 
-function getAudioContext() {
-  if (!audioCtx) {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (AudioContextClass) audioCtx = new AudioContextClass();
+      // Động cơ xe máy (Sawtooth oscillator giả lập tiếng pô rít)
+      engineOsc = audioCtx.createOscillator();
+      engineGain = audioCtx.createGain();
+      engineOsc.type = 'sawtooth';
+      engineOsc.frequency.setValueAtTime(45, audioCtx.currentTime);
+      engineGain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(380, audioCtx.currentTime);
+
+      engineOsc.connect(filter);
+      filter.connect(engineGain);
+      engineGain.connect(audioCtx.destination);
+      engineOsc.start();
+    } catch (e) {
+      console.warn('Audio Init Error:', e);
+    }
   }
-  if (audioCtx && audioCtx.state === 'suspended') {
-    audioCtx.resume();
-  }
-  return audioCtx;
-}
 
-const Sound = {
-  playHoe() {
-    if (!soundEnabled) return;
-    const actx = getAudioContext();
-    if (!actx) return;
-    const osc = actx.createOscillator();
-    const gain = actx.createGain();
+  function updateEngineSound() {
+    if (!audioCtx || !engineOsc || !engineGain || !soundEnabled) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    // Cao độ tiếng bô tăng vọt theo vận tốc
+    const targetFreq = 40 + (player.speed / player.maxSpeed) * 110 + (player.isBoosting ? 40 : 0);
+    engineOsc.frequency.setTargetAtTime(targetFreq, audioCtx.currentTime, 0.08);
+    const targetGain = player.speed > 2 ? 0.09 : 0.03;
+    engineGain.gain.setTargetAtTime(targetGain, audioCtx.currentTime, 0.1);
+  }
+
+  function playHorn() {
+    if (!audioCtx || !soundEnabled) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+    osc.frequency.setValueAtTime(554, audioCtx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.3);
+  }
+
+  function playKickHit() {
+    if (!audioCtx || !soundEnabled) return;
+    // Tiếng đấm/đạp côm cốp va kim loại (Metallic crunch)
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
     osc.type = 'triangle';
-    osc.frequency.setValueAtTime(140, actx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(40, actx.currentTime + 0.12);
-    gain.gain.setValueAtTime(0.4, actx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.12);
+    osc.frequency.setValueAtTime(260, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.15);
+    gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
     osc.connect(gain);
-    gain.connect(actx.destination);
+    gain.connect(audioCtx.destination);
     osc.start();
-    osc.stop(actx.currentTime + 0.12);
-  },
+    osc.stop(audioCtx.currentTime + 0.15);
+  }
 
-  playWater() {
-    if (!soundEnabled) return;
-    const actx = getAudioContext();
-    if (!actx) return;
-    const osc = actx.createOscillator();
-    const gain = actx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(450, actx.currentTime);
-    osc.frequency.linearRampToValueAtTime(800, actx.currentTime + 0.08);
-    osc.frequency.linearRampToValueAtTime(320, actx.currentTime + 0.16);
-    gain.gain.setValueAtTime(0.25, actx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.16);
+  function playCrashSound() {
+    if (!audioCtx || !soundEnabled) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(120, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 0.35);
+    gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
     osc.connect(gain);
-    gain.connect(actx.destination);
+    gain.connect(audioCtx.destination);
     osc.start();
-    osc.stop(actx.currentTime + 0.16);
-  },
+    osc.stop(audioCtx.currentTime + 0.35);
+  }
 
-  playPlant() {
-    if (!soundEnabled) return;
-    const actx = getAudioContext();
-    if (!actx) return;
-    const osc = actx.createOscillator();
-    const gain = actx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(520, actx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(260, actx.currentTime + 0.1);
-    gain.gain.setValueAtTime(0.3, actx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.1);
-    osc.connect(gain);
-    gain.connect(actx.destination);
-    osc.start();
-    osc.stop(actx.currentTime + 0.1);
-  },
+  // --- 3. KHỞI TẠO THREE.JS SCENE & ÁNH SÁNG ĐÊM PHỐ CỔ ---
+  function initThree() {
+    const container = document.getElementById('game-container');
 
-  playHarvest() {
-    if (!soundEnabled) return;
-    const actx = getAudioContext();
-    if (!actx) return;
-    [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
-      const osc = actx.createOscillator();
-      const gain = actx.createGain();
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(freq, actx.currentTime + i * 0.05);
-      gain.gain.setValueAtTime(0.12, actx.currentTime + i * 0.05);
-      gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + i * 0.05 + 0.15);
-      osc.connect(gain);
-      gain.connect(actx.destination);
-      osc.start(actx.currentTime + i * 0.05);
-      osc.stop(actx.currentTime + i * 0.05 + 0.15);
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x060b19);
+    // Sương mù đêm Hà Nội huyền ảo
+    scene.fog = new THREE.FogExp2(0x0a1128, 0.0075);
+
+    camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.2, 500);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    // Ánh sáng môi trường đêm (Night ambient light)
+    const ambientLight = new THREE.AmbientLight(0x223a66, 0.65);
+    scene.add(ambientLight);
+
+    // Ánh trăng xanh mờ chiếu rọi
+    const moonLight = new THREE.DirectionalLight(0x77aaff, 0.55);
+    moonLight.position.set(30, 80, -40);
+    scene.add(moonLight);
+
+    // Xây dựng đường phố và người chơi
+    buildRoadNetwork();
+    createPlayerMotorcycle();
+    spawnOpponents();
+    spawnTrafficBuses();
+
+    window.addEventListener('resize', onWindowResize);
+  }
+
+  function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+
+  // --- 4. TẠO MÔ HÌNH XE MÁY ĐUA 3D CHI TIẾT ---
+  function createBikeMesh(colorHex, isOpponent = false) {
+    const bikeGroup = new THREE.Group();
+
+    // 1. Thân xe chính (Body frame)
+    const bodyGeo = new THREE.BoxGeometry(0.7, 0.75, 2.0);
+    const bodyMat = new THREE.MeshStandardMaterial({
+      color: colorHex,
+      roughness: 0.3,
+      metalness: 0.6
     });
-  },
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.position.y = 0.85;
+    bikeGroup.add(body);
 
-  playMorning() {
-    if (!soundEnabled) return;
-    const actx = getAudioContext();
-    if (!actx) return;
-    [440, 554.37, 659.25, 880].forEach((freq, i) => {
-      const osc = actx.createOscillator();
-      const gain = actx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, actx.currentTime + i * 0.1);
-      gain.gain.setValueAtTime(0.2, actx.currentTime + i * 0.1);
-      gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + i * 0.1 + 0.3);
-      osc.connect(gain);
-      gain.connect(actx.destination);
-      osc.start(actx.currentTime + i * 0.1);
-      osc.stop(actx.currentTime + i * 0.1 + 0.3);
+    // 2. Yếm xe màu trắng ngà (Classic Honda Cub/Dream leg shield)
+    const shieldGeo = new THREE.BoxGeometry(1.0, 0.8, 0.2);
+    const shieldMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.5 });
+    const shield = new THREE.Mesh(shieldGeo, shieldMat);
+    shield.position.set(0, 0.8, 0.45);
+    bikeGroup.add(shield);
+
+    // 3. Yên xe bọc da đen
+    const seatGeo = new THREE.BoxGeometry(0.65, 0.25, 1.1);
+    const seatMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9 });
+    const seat = new THREE.Mesh(seatGeo, seatMat);
+    seat.position.set(0, 1.25, -0.35);
+    bikeGroup.add(seat);
+
+    // 4. Bánh xe trước & sau (Wheels)
+    const wheelGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.28, 18);
+    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.8 });
+    wheelGeo.rotateZ(Math.PI / 2);
+
+    const frontWheel = new THREE.Mesh(wheelGeo, wheelMat);
+    frontWheel.position.set(0, 0.5, 1.15);
+    bikeGroup.add(frontWheel);
+
+    const rearWheel = new THREE.Mesh(wheelGeo, wheelMat);
+    rearWheel.position.set(0, 0.5, -0.95);
+    bikeGroup.add(rearWheel);
+
+    // 5. Đèn pha trước (Headlight)
+    const headlightGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.2, 16);
+    headlightGeo.rotateX(Math.PI / 2);
+    const headlightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const headlight = new THREE.Mesh(headlightGeo, headlightMat);
+    headlight.position.set(0, 1.15, 1.1);
+    bikeGroup.add(headlight);
+
+    // Đèn rọi SpotLight thực tế soi sáng mặt đường phía trước
+    if (!isOpponent) {
+      const spotLight = new THREE.SpotLight(0xfff8d6, 3.2, 55, Math.PI / 6, 0.45, 1.2);
+      spotLight.position.set(0, 1.15, 1.2);
+      const spotTarget = new THREE.Object3D();
+      spotTarget.position.set(0, 0, 25);
+      bikeGroup.add(spotTarget);
+      spotLight.target = spotTarget;
+      bikeGroup.add(spotLight);
+    }
+
+    // 6. Đèn hậu đỏ rực phía sau
+    const tailGeo = new THREE.BoxGeometry(0.3, 0.16, 0.1);
+    const tailMat = new THREE.MeshBasicMaterial({ color: 0xff0044 });
+    const tailLight = new THREE.Mesh(tailGeo, tailMat);
+    tailLight.position.set(0, 1.1, -1.05);
+    bikeGroup.add(tailLight);
+
+    // 7. Tay lái (Handlebars)
+    const handleGeo = new THREE.CylinderGeometry(0.06, 0.06, 1.1, 10);
+    handleGeo.rotateZ(Math.PI / 2);
+    const handleMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8 });
+    const handle = new THREE.Mesh(handleGeo, handleMat);
+    handle.position.set(0, 1.35, 0.85);
+    bikeGroup.add(handle);
+
+    // 8. Ống xả pô xe mạ bạc
+    const exhaustGeo = new THREE.CylinderGeometry(0.09, 0.12, 1.1, 10);
+    exhaustGeo.rotateX(Math.PI / 2);
+    const exhaustMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.9 });
+    const exhaust = new THREE.Mesh(exhaustGeo, exhaustMat);
+    exhaust.position.set(0.38, 0.45, -0.65);
+    bikeGroup.add(exhaust);
+
+    // 9. Nhân vật tay đua (Rider)
+    const riderGroup = new THREE.Group();
+
+    // Thân áo
+    const torsoGeo = new THREE.BoxGeometry(0.65, 0.75, 0.4);
+    const torsoMat = new THREE.MeshStandardMaterial({
+      color: isOpponent ? 0xd97706 : 0x0284c7,
+      roughness: 0.7
     });
-  },
+    const torso = new THREE.Mesh(torsoGeo, torsoMat);
+    torso.position.set(0, 1.7, -0.2);
+    torso.rotation.x = 0.28; // Hơi khom người núp gió
+    riderGroup.add(torso);
 
-  playCast() {
-    if (!soundEnabled) return;
-    const actx = getAudioContext();
-    if (!actx) return;
-    const osc = actx.createOscillator();
-    const gain = actx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(280, actx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(700, actx.currentTime + 0.18);
-    gain.gain.setValueAtTime(0.2, actx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.18);
-    osc.connect(gain);
-    gain.connect(actx.destination);
-    osc.start();
-    osc.stop(actx.currentTime + 0.18);
-  }
-};
+    // Đầu & Mũ bảo hiểm nửa đầu
+    const helmetGeo = new THREE.SphereGeometry(0.28, 14, 14);
+    const helmetMat = new THREE.MeshStandardMaterial({
+      color: isOpponent ? 0xef4444 : 0xfacc15,
+      roughness: 0.3
+    });
+    const helmet = new THREE.Mesh(helmetGeo, helmetMat);
+    helmet.position.set(0, 2.25, -0.05);
+    riderGroup.add(helmet);
 
-// --- 4. TRẠNG THÁI TOÀN CỤC (GAME STATE) ---
-let gameState = {
-  day: 1,
-  timeMinutes: 420, // 07:00 AM
-  gold: 500,
-  energy: 100,
-  maxEnergy: 100,
-  season: 'MÙA XUÂN',
-  weather: '☀️ NẮNG ĐẸP',
-  selectedSeedId: 'tomato', // Hạt giống đang gán cho Slot 4
-  inventory: {
-    wood: 25,
-    stone: 15,
-    copper_ore: 5,
-    iron_ore: 2,
-    seeds: {
-      tomato: 5,
-      corn: 3,
-      carrot: 2
-    },
-    crops: {}
-  },
-  quests: JSON.parse(JSON.stringify(QUESTS_DATA)),
-  tiles: []
-};
+    // Chân trái & Chân phải (Có thể co duỗi khi ĐẠP)
+    const legGeo = new THREE.BoxGeometry(0.2, 0.65, 0.25);
+    const legMat = new THREE.MeshStandardMaterial({ color: 0x1e293b });
 
-// Nhân vật chính
-let player = {
-  x: 7 * TILE_SIZE,
-  y: 6 * TILE_SIZE,
-  speed: 3.2,
-  dir: 0, // 0: Down, 1: Up, 2: Left, 3: Right
-  frame: 0,
-  animTimer: 0,
-  isMoving: false,
-  selectedSlot: 0, // 0..5
-  swinging: 0
-};
+    const leftLeg = new THREE.Mesh(legGeo, legMat);
+    leftLeg.position.set(-0.32, 1.15, -0.15);
+    riderGroup.add(leftLeg);
 
-// 2 NPC đang có mặt tại trang trại Ba Vì
-let npcs = [
-  { id: 'bac_ba', col: 14, row: 4, name: 'Bác Ba (Cây Bàng)', avatar: '👴', dir: 0 },
-  { id: 'chi_lan', col: 7, row: 2, name: 'Chị Lan (Trà Đá)', avatar: '👩', dir: 2 }
-];
+    const rightLeg = new THREE.Mesh(legGeo, legMat);
+    rightLeg.position.set(0.32, 1.15, -0.15);
+    riderGroup.add(rightLeg);
 
-// Hiệu ứng hạt & chữ nổi
-const particles = [];
-const floatingTexts = [];
+    bikeGroup.add(riderGroup);
 
-// Cảnh quan tĩnh
-const scenery = {
-  house: { x: 2 * TILE_SIZE, y: 1 * TILE_SIZE, w: 96 * 1.8, h: 80 * 1.8 },
-  chest: { col: 7, row: 3 },
-  trees: [
-    { col: 0, row: 8 },
-    { col: 0, row: 11 },
-    { col: 19, row: 1 },
-    { col: 22, row: 1 },
-    { col: 22, row: 4 }
-  ],
-  fences: [
-    { col: 2, row: 5 }, { col: 3, row: 5 }, { col: 4, row: 5 }, { col: 5, row: 5 },
-    { col: 6, row: 5 }, { col: 7, row: 5 }
-  ],
-  pond: { minCol: 18, maxCol: 23, minRow: 10, maxRow: 13 }
-};
-
-// --- 5. BẢN ĐỒ & TẠO Ô ĐẤT ---
-function initMapTiles() {
-  const tiles = [];
-  for (let c = 0; c < COLS; c++) {
-    tiles[c] = [];
-    for (let r = 0; r < ROWS; r++) {
-      let type = 'grass';
-      let isSolid = false;
-      let decoration = null;
-
-      // Ao nước
-      if (c >= scenery.pond.minCol && c <= scenery.pond.maxCol &&
-          r >= scenery.pond.minRow && r <= scenery.pond.maxRow) {
-        type = 'water';
-        isSolid = true;
-      }
-
-      // Nhà ở
-      if (c >= 2 && c <= 6 && r >= 1 && r <= 4) isSolid = true;
-
-      // Hàng rào
-      if (scenery.fences.some(f => f.col === c && f.row === r)) isSolid = true;
-
-      // Hoa cỏ dại ngẫu nhiên
-      if (type === 'grass' && !isSolid && Math.random() < 0.12) {
-        decoration = Math.floor(Math.random() * 4);
-      }
-
-      tiles[c][r] = {
-        type: type,
-        tilled: false,
-        watered: false,
-        isSolid: isSolid,
-        decoration: decoration,
-        crop: null
-      };
-    }
-  }
-
-  // Luống đất cày sẵn 6x3
-  for (let c = 9; c <= 14; c++) {
-    for (let r = 6; r <= 9; r++) {
-      tiles[c][r].tilled = true;
-      tiles[c][r].decoration = null;
-    }
-  }
-
-  return tiles;
-}
-
-// --- 6. HỆ THỐNG LƯU / TẢI GAME (SAVE / LOAD) ---
-function saveGame() {
-  try {
-    const dataToSave = {
-      day: gameState.day,
-      timeMinutes: gameState.timeMinutes,
-      gold: gameState.gold,
-      energy: gameState.energy,
-      season: gameState.season,
-      selectedSeedId: gameState.selectedSeedId,
-      inventory: gameState.inventory,
-      playerPos: { x: player.x, y: player.y, dir: player.dir, slot: player.selectedSlot },
-      tiles: gameState.tiles.map(col => col.map(t => ({
-        tilled: t.tilled,
-        watered: t.watered,
-        crop: t.crop
-      })))
+    return {
+      mesh: bikeGroup,
+      leftLeg: leftLeg,
+      rightLeg: rightLeg,
+      wheels: [frontWheel, rearWheel]
     };
-    localStorage.setItem('hanoichill_save_v2', JSON.stringify(dataToSave));
-    showToast('Đã lưu tiến trình nông trại Hà Nội Chill! 💾');
-  } catch (e) {
-    console.error('Lỗi khi lưu game:', e);
   }
-}
 
-function loadGame() {
-  try {
-    const raw = localStorage.getItem('hanoichill_save_v2');
-    if (raw) {
-      const saved = JSON.parse(raw);
-      gameState.day = saved.day || 1;
-      gameState.timeMinutes = saved.timeMinutes || 420;
-      gameState.gold = saved.gold ?? 500;
-      gameState.energy = saved.energy ?? 100;
-      gameState.season = saved.season || 'MÙA XUÂN';
-      gameState.selectedSeedId = saved.selectedSeedId || 'tomato';
-      if (saved.inventory) gameState.inventory = saved.inventory;
+  function createPlayerMotorcycle() {
+    const bikeData = createBikeMesh(0xb91c1c, false); // Honda Dream màu đỏ đô huyền thoại
+    playerBike = bikeData.mesh;
+    playerRider = bikeData;
+    playerBike.position.set(0, 0, 0);
+    scene.add(playerBike);
+  }
 
-      if (saved.playerPos) {
-        player.x = saved.playerPos.x;
-        player.y = saved.playerPos.y;
-        player.dir = saved.playerPos.dir || 0;
-        player.selectedSlot = saved.playerPos.slot || 0;
-      }
+  // --- 5. TẠO CÁC TAY ĐUA ĐỐI THỦ PHỐ CỔ (OPPONENT AI) ---
+  const OPPONENT_NAMES = [
+    { name: 'Hùng "Tổ Lái"', color: 0x2563eb, speed: 118, biasX: -3.5 },
+    { name: 'Tuấn "Wave Chiến"', color: 0x16a34a, speed: 124, biasX: 3.5 },
+    { name: 'Lan "Bão Đêm"', color: 0xd946ef, speed: 121, biasX: -6.0 },
+    { name: 'Dũng "Pô Nổ"', color: 0xf59e0b, speed: 115, biasX: 6.0 },
+    { name: 'Sơn "Liều Mạng"', color: 0xdc2626, speed: 127, biasX: 0.0 }
+  ];
 
-      gameState.tiles = initMapTiles();
-      if (saved.tiles && saved.tiles.length === COLS) {
-        for (let c = 0; c < COLS; c++) {
-          for (let r = 0; r < ROWS; r++) {
-            if (saved.tiles[c][r]) {
-              gameState.tiles[c][r].tilled = saved.tiles[c][r].tilled;
-              gameState.tiles[c][r].watered = saved.tiles[c][r].watered;
-              gameState.tiles[c][r].crop = saved.tiles[c][r].crop;
-            }
-          }
-        }
-      }
-      return true;
+  function spawnOpponents() {
+    OPPONENT_NAMES.forEach((data, index) => {
+      const bikeObj = createBikeMesh(data.color, true);
+      const startZ = 25 + index * 35;
+      bikeObj.mesh.position.set(data.biasX, 0, startZ);
+      scene.add(bikeObj.mesh);
+
+      opponents.push({
+        id: index,
+        name: data.name,
+        mesh: bikeObj.mesh,
+        leftLeg: bikeObj.leftLeg,
+        rightLeg: bikeObj.rightLeg,
+        x: data.biasX,
+        z: startZ,
+        speed: data.speed,
+        baseSpeed: data.speed,
+        isDown: false,
+        downTimer: 0,
+        lean: 0,
+        kickTimer: 0
+      });
+    });
+  }
+
+  // --- 6. XE BUÝT HÀ NỘI SỐ 01 / 02 TRÊN ĐƯỜNG (TRAFFIC VEHICLES) ---
+  function spawnTrafficBuses() {
+    for (let i = 0; i < 5; i++) {
+      const busGroup = new THREE.Group();
+
+      // Thân xe buýt lớn màu vàng - đỏ đặc trưng Hà Nội
+      const busBodyGeo = new THREE.BoxGeometry(3.6, 3.8, 12);
+      const busMat = new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.4 });
+      const busBody = new THREE.Mesh(busBodyGeo, busMat);
+      busBody.position.y = 2.1;
+      busGroup.add(busBody);
+
+      // Nửa thân dưới màu đỏ
+      const lowerGeo = new THREE.BoxGeometry(3.65, 1.2, 12.05);
+      const lowerMat = new THREE.MeshStandardMaterial({ color: 0xb91c1c });
+      const lower = new THREE.Mesh(lowerGeo, lowerMat);
+      lower.position.y = 0.9;
+      busGroup.add(lower);
+
+      // Kính xe buýt
+      const glassGeo = new THREE.BoxGeometry(3.7, 1.4, 11);
+      const glassMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.2 });
+      const glass = new THREE.Mesh(glassGeo, glassMat);
+      glass.position.y = 2.6;
+      busGroup.add(glass);
+
+      // Đèn hậu xe buýt
+      const tailGeo = new THREE.BoxGeometry(0.6, 0.4, 0.1);
+      const tailMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+      const tl = new THREE.Mesh(tailGeo, tailMat);
+      tl.position.set(1.2, 1.2, -6.05);
+      const tr = new THREE.Mesh(tailGeo, tailMat);
+      tr.position.set(-1.2, 1.2, -6.05);
+      busGroup.add(tl);
+      busGroup.add(tr);
+
+      const laneX = (i % 2 === 0) ? -4.5 : 4.5;
+      const startZ = 120 + i * 160;
+      busGroup.position.set(laneX, 0, startZ);
+      scene.add(busGroup);
+
+      trafficVehicles.push({
+        mesh: busGroup,
+        x: laneX,
+        z: startZ,
+        speed: 48 // Chạy chậm 48 km/h
+      });
     }
-  } catch (e) {
-    console.warn('Lỗi đọc file save, khởi tạo mới:', e);
   }
-  gameState.tiles = initMapTiles();
-  return false;
-}
 
-// --- 7. ĐI NGỦ (QUA NGÀY MỚI) ---
-let isSleeping = false;
-let sleepFadeAlpha = 0;
+  // --- 7. TẠO HỆ THỐNG ĐƯỜNG PHỐ & NHÀ CỔ VÔ TẬN (PROCEDURAL ROAD & CITY) ---
+  const NEON_SIGNS = [
+    'PHỞ BÁT ĐÀN', 'BIA HƠI HÀ NỘI', 'CAFE TRỨNG', 'TRÀ ĐÁ VỈA HÈ',
+    'BÚN CHẢ PHỐ CỔ', 'CẮM ĐỒ 24/7', 'KEM TRÀNG TIỀN', 'LẨU ẾCH HỒ TÂY'
+  ];
 
-function sleepNextDay() {
-  if (isSleeping) return;
-  isSleeping = true;
-  showToast('Đang nghỉ ngơi... Một ngày mới thanh bình ở Ba Vì 🌅');
+  function createNeonTexture(text) {
+    const cvs = document.createElement('canvas');
+    cvs.width = 512;
+    cvs.height = 128;
+    const c = cvs.getContext('2d');
+    c.fillStyle = '#0b1329';
+    c.fillRect(0, 0, 512, 128);
 
-  let fadeStep = 0.05;
-  const fadeInterval = setInterval(() => {
-    sleepFadeAlpha += fadeStep;
-    if (sleepFadeAlpha >= 1) {
-      clearInterval(fadeInterval);
+    c.strokeStyle = '#00f3ff';
+    c.lineWidth = 6;
+    c.strokeRect(8, 8, 496, 112);
 
-      gameState.day += 1;
-      gameState.timeMinutes = 360; // 06:00 AM
-      gameState.energy = 100;
+    c.font = 'bold 36px Arial, sans-serif';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillStyle = '#ffea00';
+    c.shadowColor = '#ff0055';
+    c.shadowBlur = 18;
+    c.fillText(text, 256, 64);
 
-      // Sinh trưởng cây trồng
-      for (let c = 0; c < COLS; c++) {
-        for (let r = 0; r < ROWS; r++) {
-          const tile = gameState.tiles[c][r];
-          if (tile.crop && tile.watered) {
-            if (tile.crop.stage < 5) {
-              tile.crop.stage += 1;
-            }
-          }
-          tile.watered = false; // Đất khô lại
-        }
-      }
+    return new THREE.CanvasTexture(cvs);
+  }
 
-      saveGame();
-      Sound.playMorning();
-      updateHUD();
+  function createRoadSegment(index) {
+    const segGroup = new THREE.Group();
+    const segZ = index * SEGMENT_LENGTH;
 
-      const unfadeInterval = setInterval(() => {
-        sleepFadeAlpha -= fadeStep;
-        if (sleepFadeAlpha <= 0) {
-          sleepFadeAlpha = 0;
-          isSleeping = false;
-          clearInterval(unfadeInterval);
-        }
-      }, 30);
+    // 1. Mặt đường nhựa ẩm ướt phản chiếu (Wet Asphalt)
+    const roadGeo = new THREE.PlaneGeometry(ROAD_WIDTH, SEGMENT_LENGTH);
+    roadGeo.rotateX(-Math.PI / 2);
+    const roadMat = new THREE.MeshStandardMaterial({
+      color: 0x141824,
+      roughness: 0.45,
+      metalness: 0.2
+    });
+    const roadMesh = new THREE.Mesh(roadGeo, roadMat);
+    roadMesh.position.y = 0;
+    segGroup.add(roadMesh);
+
+    // 2. Vạch kẻ đường đứt đoạn màu vàng phản quang
+    for (let l = 0; l < 4; l++) {
+      const lineGeo = new THREE.PlaneGeometry(0.35, 6);
+      lineGeo.rotateX(-Math.PI / 2);
+      const lineMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+      const lineMesh = new THREE.Mesh(lineGeo, lineMat);
+      lineMesh.position.set(0, 0.02, -SEGMENT_LENGTH / 2 + 10 + l * 20);
+      segGroup.add(lineMesh);
     }
-  }, 30);
-}
 
-// --- 8. ĐIỀU KHIỂN & INPUT ---
-const keys = { w: false, a: false, s: false, d: false, space: false };
-let actionRequested = false;
+    // 3. Vỉa hè hai bên (Sidewalks)
+    const walkGeo = new THREE.BoxGeometry(6, 0.4, SEGMENT_LENGTH);
+    const walkMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.9 });
 
-window.addEventListener('keydown', e => {
-  const k = e.key.toLowerCase();
-  if (k === 'w' || e.key === 'ArrowUp') keys.w = true;
-  if (k === 'a' || e.key === 'ArrowLeft') keys.a = true;
-  if (k === 's' || e.key === 'ArrowDown') keys.s = true;
-  if (k === 'd' || e.key === 'ArrowRight') keys.d = true;
+    const leftWalk = new THREE.Mesh(walkGeo, walkMat);
+    leftWalk.position.set(-ROAD_WIDTH / 2 - 3, 0.2, 0);
+    segGroup.add(leftWalk);
 
-  if (e.key === ' ' || k === 'space') {
-    if (!keys.space) actionRequested = true;
-    keys.space = true;
-    e.preventDefault();
-  }
+    const rightWalk = new THREE.Mesh(walkGeo, walkMat);
+    rightWalk.position.set(ROAD_WIDTH / 2 + 3, 0.2, 0);
+    segGroup.add(rightWalk);
 
-  // Phím số 1..6 đổi công cụ
-  if (['1', '2', '3', '4', '5', '6'].includes(k)) {
-    player.selectedSlot = parseInt(k) - 1;
-    updateHotbarUI();
-  }
+    // 4. Cột đèn cao áp ánh vàng ấm (Street Lamps)
+    const lampX = ROAD_WIDTH / 2 + 2;
+    const lampPoleGeo = new THREE.CylinderGeometry(0.12, 0.16, 7.5, 8);
+    const lampMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8 });
+    const lampPole = new THREE.Mesh(lampPoleGeo, lampMat);
+    lampPole.position.set(lampX, 3.75, 0);
+    segGroup.add(lampPole);
 
-  // Phím E mở Túi đồ
-  if (k === 'e') {
-    openInventoryModal();
-  }
+    // Đèn chiếu sáng vàng ấm (Street light glow)
+    const bulbGeo = new THREE.SphereGeometry(0.35, 8, 8);
+    const bulbMat = new THREE.MeshBasicMaterial({ color: 0xffd54f });
+    const bulb = new THREE.Mesh(bulbGeo, bulbMat);
+    bulb.position.set(lampX - 0.8, 7.4, 0);
+    segGroup.add(bulb);
 
-  // Phím ESC đóng modal hoặc hộp thoại
-  if (k === 'escape') {
-    closeAllModals();
-    closeDialogue();
-  }
-});
+    const streetLight = new THREE.PointLight(0xffb74d, 1.2, 32, 1.6);
+    streetLight.position.set(lampX - 0.8, 7.2, 0);
+    segGroup.add(streetLight);
 
-window.addEventListener('keyup', e => {
-  const k = e.key.toLowerCase();
-  if (k === 'w' || e.key === 'ArrowUp') keys.w = false;
-  if (k === 'a' || e.key === 'ArrowLeft') keys.a = false;
-  if (k === 's' || e.key === 'ArrowDown') keys.s = false;
-  if (k === 'd' || e.key === 'ArrowRight') keys.d = false;
-  if (e.key === ' ' || k === 'space') keys.space = false;
-});
+    // 5. Cây xanh cổ thụ râm mát trên vỉa hè
+    const treeGeo = new THREE.DodecahedronGeometry(2.8, 1);
+    const treeMat = new THREE.MeshStandardMaterial({ color: 0x1e4620, roughness: 0.8 });
+    const treeMesh = new THREE.Mesh(treeGeo, treeMat);
+    treeMesh.position.set(-lampX - 1.2, 6.5, -15);
+    segGroup.add(treeMesh);
 
-// Tương tác chuột
-let mouseTile = null;
-canvas.addEventListener('mousemove', e => {
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
-  const mx = (e.clientX - rect.left) * scaleX;
-  const my = (e.clientY - rect.top) * scaleY;
-  const c = Math.floor(mx / TILE_SIZE);
-  const r = Math.floor(my / TILE_SIZE);
-  if (c >= 0 && c < COLS && r >= 0 && r < ROWS) {
-    mouseTile = { col: c, row: r };
-  } else {
-    mouseTile = null;
-  }
-});
+    const trunkGeo = new THREE.CylinderGeometry(0.35, 0.45, 5, 8);
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x3d2817 });
+    const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+    trunk.position.set(-lampX - 1.2, 2.5, -15);
+    segGroup.add(trunk);
 
-canvas.addEventListener('click', () => {
-  if (mouseTile) {
-    interactWithTile(mouseTile.col, mouseTile.row);
-  }
-});
+    // 6. Dãy nhà ống phố cổ Hà Nội san sát 2 bên
+    [-1, 1].forEach(side => {
+      const bldHeight = 12 + Math.random() * 8;
+      const bldGeo = new THREE.BoxGeometry(8, bldHeight, 22);
+      const bldMat = new THREE.MeshStandardMaterial({
+        color: (side === -1) ? 0x94a3b8 : 0x78716c,
+        roughness: 0.85
+      });
+      const bldMesh = new THREE.Mesh(bldGeo, bldMat);
+      bldMesh.position.set(side * (ROAD_WIDTH / 2 + 10), bldHeight / 2, 0);
+      segGroup.add(bldMesh);
 
-canvas.addEventListener('wheel', e => {
-  e.preventDefault();
-  if (e.deltaY > 0) {
-    player.selectedSlot = (player.selectedSlot + 1) % 6;
-  } else {
-    player.selectedSlot = (player.selectedSlot - 1 + 6) % 6;
-  }
-  updateHotbarUI();
-});
-
-// Tay cầm (Gamepad API)
-let gpPrevButtons = {};
-function pollGamepad() {
-  const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
-  if (!gamepads || !gamepads[0]) return;
-  const gp = gamepads[0];
-
-  const ax = gp.axes[0] || 0;
-  const ay = gp.axes[1] || 0;
-  keys.w = gp.buttons[12]?.pressed || ay < -0.4;
-  keys.s = gp.buttons[13]?.pressed || ay > 0.4;
-  keys.a = gp.buttons[14]?.pressed || ax < -0.4;
-  keys.d = gp.buttons[15]?.pressed || ax > 0.4;
-
-  const btnA = gp.buttons[0]?.pressed;
-  if (btnA && !gpPrevButtons[0]) actionRequested = true;
-  gpPrevButtons[0] = btnA;
-
-  const btnLB = gp.buttons[4]?.pressed;
-  if (btnLB && !gpPrevButtons[4]) {
-    player.selectedSlot = (player.selectedSlot - 1 + 6) % 6;
-    updateHotbarUI();
-  }
-  gpPrevButtons[4] = btnLB;
-
-  const btnRB = gp.buttons[5]?.pressed;
-  if (btnRB && !gpPrevButtons[5]) {
-    player.selectedSlot = (player.selectedSlot + 1) % 6;
-    updateHotbarUI();
-  }
-  gpPrevButtons[5] = btnRB;
-
-  const btnY = gp.buttons[3]?.pressed; // Nút Y mở túi đồ
-  if (btnY && !gpPrevButtons[3]) openInventoryModal();
-  gpPrevButtons[3] = btnY;
-
-  const btnStart = gp.buttons[9]?.pressed;
-  if (btnStart && !gpPrevButtons[9]) sleepNextDay();
-  gpPrevButtons[9] = btnStart;
-
-  const btnSelect = gp.buttons[8]?.pressed;
-  if (btnSelect && !gpPrevButtons[8]) saveGame();
-  gpPrevButtons[8] = btnSelect;
-}
-
-// --- 9. LOGIC TƯƠNG TÁC (FARMING, FISHING, NPC) ---
-function getFrontTile() {
-  const pc = Math.floor((player.x + 16) / TILE_SIZE);
-  const pr = Math.floor((player.y + 24) / TILE_SIZE);
-  let tc = pc;
-  let tr = pr;
-  if (player.dir === 0) tr += 1;
-  if (player.dir === 1) tr -= 1;
-  if (player.dir === 2) tc -= 1;
-  if (player.dir === 3) tc += 1;
-
-  if (tc >= 0 && tc < COLS && tr >= 0 && tr < ROWS) {
-    return { col: tc, row: tr };
-  }
-  return null;
-}
-
-function interactWithTile(col, row) {
-  if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return;
-
-  // Kiểm tra tương tác với NPC gần đó
-  const npcNear = npcs.find(n => n.col === col && n.row === row);
-  if (npcNear) {
-    openDialogue(npcNear.id);
-    return;
-  }
-
-  const tile = gameState.tiles[col][row];
-
-  // Nếu đang cầm CẦN CÂU (Slot 3) và ô đối diện là ao nước
-  if (player.selectedSlot === 3 && tile.type === 'water') {
-    startFishing();
-    return;
-  }
-
-  if (tile.isSolid) return;
-
-  player.swinging = 12;
-  const px = col * TILE_SIZE + 16;
-  const py = row * TILE_SIZE + 16;
-
-  switch (player.selectedSlot) {
-    case 0: // CUỐC ĐẤT (HOE)
-      if (!tile.tilled && tile.type === 'grass') {
-        tile.tilled = true;
-        tile.decoration = null;
-        Sound.playHoe();
-        spawnDustParticles(px, py, '#8a5b28');
-        consumeEnergy(2);
-      }
-      break;
-
-    case 1: // BÌNH TƯỚI (WATERING CAN)
-      if (tile.tilled && !tile.watered) {
-        tile.watered = true;
-        Sound.playWater();
-        spawnWaterParticles(px, py);
-        consumeEnergy(1);
-      }
-      break;
-
-    case 2: // RÌU ĐỐN CỦI (AXE)
-      if (tile.decoration !== null) {
-        tile.decoration = null;
-        gameState.inventory.wood = (gameState.inventory.wood || 0) + 2;
-        Sound.playHoe();
-        spawnDustParticles(px, py, '#5c7a29');
-        showToast('Nhặt được +2 Gỗ! 🪵');
-        consumeEnergy(2);
-      } else if (tile.tilled && !tile.crop) {
-        tile.tilled = false; // Phẳng lại cỏ
-        Sound.playHoe();
-      }
-      break;
-
-    case 3: // CẦN CÂU CÁ (Nếu click ngoài nước)
-      showToast('Hãy hướng cần câu về phía bờ ao để câu cá! 🎣');
-      break;
-
-    case 4: // GIEO HẠT GIỐNG ĐANG CHỌN
-      if (tile.tilled && !tile.crop) {
-        const seedId = gameState.selectedSeedId || 'tomato';
-        const cropInfo = CROPS_DATA[seedId] || CROPS_DATA.tomato;
-        const seedCount = gameState.inventory.seeds[seedId] || 0;
-
-        if (seedCount > 0) {
-          tile.crop = { type: seedId, stage: 0 };
-          gameState.inventory.seeds[seedId]--;
-          Sound.playPlant();
-          spawnDustParticles(px, py, '#38a169');
-          showToast(`Đã gieo 1 hạt giống ${cropInfo.name}! 🌱`);
-          updateHotbarUI();
-        } else {
-          showToast(`Hết hạt giống ${cropInfo.name}! Hãy vào Cửa hàng Cô Mai mua thêm.`);
-        }
-      }
-      break;
-
-    case 5: // THU HOẠCH / NHẶT NÔNG SẢN (HAND)
-      if (tile.crop && tile.crop.stage === 5) {
-        const cropInfo = CROPS_DATA[tile.crop.type] || CROPS_DATA.tomato;
-        const reward = cropInfo.sellPrice;
-
-        gameState.gold += reward;
-        gameState.inventory.crops[tile.crop.type] = (gameState.inventory.crops[tile.crop.type] || 0) + 1;
-
-        if (cropInfo.regrows) {
-          tile.crop.stage = 3; // Quay lại giai đoạn ra hoa
-        } else {
-          tile.crop = null;
-        }
-
-        Sound.playHarvest();
-        floatingTexts.push({
-          text: `+${reward}G`,
-          x: px,
-          y: py - 10,
-          alpha: 1,
-          color: '#ffd700'
+      // Biển hiệu Neon phát sáng rực rỡ
+      if (Math.random() < 0.65) {
+        const signText = NEON_SIGNS[Math.floor(Math.random() * NEON_SIGNS.length)];
+        const signGeo = new THREE.PlaneGeometry(6, 1.8);
+        const signMat = new THREE.MeshBasicMaterial({
+          map: createNeonTexture(signText),
+          transparent: true
         });
-        spawnSparkles(px, py);
-        showToast(`Thu hoạch ${cropInfo.name}! (+${reward} Gold 🪙)`);
-        updateHUD();
-      }
-      break;
-  }
-}
-
-function consumeEnergy(amount) {
-  gameState.energy = Math.max(0, gameState.energy - amount);
-  updateHUD();
-  if (gameState.energy === 0) {
-    showToast('Bạn đã kiệt sức! Hãy đi ngủ để hồi phục 🛌');
-  }
-}
-
-// --- 10. MINIGAME CÂU CÁ (FISHING MINIGAME) ---
-let isFishingActive = false;
-let fishingFishPos = 50; // 0..100
-let fishingBarPos = 50;  // 0..100
-let fishingProgress = 35; // 0..100
-let fishVelocity = 1;
-
-function startFishing() {
-  if (isFishingActive) return;
-  isFishingActive = true;
-  Sound.playCast();
-  showToast('Đang quăng cần câu xuống hồ... Chờ cá cắn câu! 🎣');
-
-  setTimeout(() => {
-    // Cá cắn câu -> Mở minigame
-    const overlay = document.getElementById('fishing-box');
-    if (overlay) overlay.style.display = 'block';
-    fishingProgress = 35;
-    runFishingLoop();
-  }, 1200);
-}
-
-function runFishingLoop() {
-  if (!isFishingActive) return;
-
-  // Cá di chuyển ngẫu nhiên
-  fishingFishPos += fishVelocity * (Math.random() * 3 + 1);
-  if (fishingFishPos > 85) { fishingFishPos = 85; fishVelocity = -1; }
-  if (fishingFishPos < 15) { fishingFishPos = 15; fishVelocity = 1; }
-  if (Math.random() < 0.05) fishVelocity *= -1;
-
-  // Thanh xanh được kéo lên nếu người chơi giữ SPACE hoặc Chuột
-  if (keys.space) {
-    fishingBarPos = Math.max(0, fishingBarPos - 2.8);
-  } else {
-    fishingBarPos = Math.min(80, fishingBarPos + 2.2); // Trọng lực rơi xuống
-  }
-
-  // Kiểm tra thanh xanh có bắt trúng cá không
-  const isCatching = Math.abs(fishingBarPos - fishingFishPos) < 22;
-  if (isCatching) {
-    fishingProgress = Math.min(100, fishingProgress + 0.6);
-  } else {
-    fishingProgress = Math.max(0, fishingProgress - 0.4);
-  }
-
-  // Cập nhật DOM
-  const greenBar = document.getElementById('fishing-green-bar');
-  const fishIcon = document.getElementById('fishing-fish-icon');
-  const fill = document.getElementById('fishing-progress-fill');
-
-  if (greenBar) greenBar.style.top = `${fishingBarPos * 1.3}px`;
-  if (fishIcon) fishIcon.style.top = `${fishingFishPos * 1.3}px`;
-  if (fill) fill.style.height = `${fishingProgress}%`;
-
-  if (fishingProgress >= 100) {
-    // Câu thành công!
-    endFishing(true);
-  } else if (fishingProgress <= 0) {
-    // Cá chạy mất
-    endFishing(false);
-  } else {
-    requestAnimationFrame(runFishingLoop);
-  }
-}
-
-function endFishing(success) {
-  isFishingActive = false;
-  const overlay = document.getElementById('fishing-box');
-  if (overlay) overlay.style.display = 'none';
-
-  if (success) {
-    const randomFish = FISH_DATA[Math.floor(Math.random() * FISH_DATA.length)];
-    gameState.gold += randomFish.price;
-    Sound.playHarvest();
-    showToast(`Tuyệt vời! Bạn câu được 1 con ${randomFish.name}! (+${randomFish.price} Gold) 🐟`);
-    updateHUD();
-  } else {
-    showToast('Cá đã giật mạnh và bơi mất! Hãy thử lại lần sau nhé. 🌊');
-  }
-}
-
-// --- 11. HỘP THOẠI NPC (DIALOGUE SYSTEM) ---
-let currentNpcId = null;
-
-function openDialogue(npcId) {
-  currentNpcId = npcId;
-  const npc = NPCS_DATA.find(n => n.id === npcId);
-  if (!npc) return;
-
-  const box = document.getElementById('dialogue-box');
-  const nameEl = document.getElementById('dialogue-name');
-  const textEl = document.getElementById('dialogue-text');
-  const avatarEl = document.getElementById('dialogue-avatar');
-
-  if (box && nameEl && textEl && avatarEl) {
-    nameEl.innerText = `${npc.name} (${npc.role})`;
-    textEl.innerText = npc.dialogues.morning;
-    avatarEl.innerText = npc.avatar;
-    box.style.display = 'flex';
-  }
-}
-
-function closeDialogue() {
-  const box = document.getElementById('dialogue-box');
-  if (box) box.style.display = 'none';
-  currentNpcId = null;
-}
-
-// --- 12. CÁC CỬA SỔ MODAL (SHOP / CRAFTING / INVENTORY / QUESTS) ---
-function openModal(title, contentHtml) {
-  const backdrop = document.getElementById('modal-backdrop');
-  const titleEl = document.getElementById('modal-title');
-  const bodyEl = document.getElementById('modal-body');
-  if (backdrop && titleEl && bodyEl) {
-    titleEl.innerText = title;
-    bodyEl.innerHTML = contentHtml;
-    backdrop.style.display = 'flex';
-  }
-}
-
-function closeAllModals() {
-  const backdrop = document.getElementById('modal-backdrop');
-  if (backdrop) backdrop.style.display = 'none';
-}
-
-function openShopModal() {
-  let html = `<div class="modal-grid-cards">`;
-  Object.values(CROPS_DATA).forEach(c => {
-    html += `
-      <div class="modal-item-card">
-        <div class="card-icon">🌱</div>
-        <div class="card-info">
-          <div class="card-title">Hạt ${c.name}</div>
-          <div class="card-desc">${c.description}</div>
-          <div style="font-size:8px; color:#c53030; margin-bottom:6px;">Giá: 🪙 ${c.seedPrice} G | Thu hoạch: 🪙 ${c.sellPrice} G</div>
-          <button class="wood-btn btn-sm btn-buy-seed" data-crop="${c.id}">MUA HẠT (🪙 ${c.seedPrice}G)</button>
-        </div>
-      </div>
-    `;
-  });
-  html += `</div>`;
-  openModal('Tiệm Bách Hóa Cô Mai - Mua Hạt Giống', html);
-
-  // Gán sự kiện mua
-  document.querySelectorAll('.btn-buy-seed').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const cropId = btn.getAttribute('data-crop');
-      const cropInfo = CROPS_DATA[cropId];
-      if (gameState.gold >= cropInfo.seedPrice) {
-        gameState.gold -= cropInfo.seedPrice;
-        gameState.inventory.seeds[cropId] = (gameState.inventory.seeds[cropId] || 0) + 1;
-        gameState.selectedSeedId = cropId; // Chọn luôn hạt này
-        Sound.playPlant();
-        updateHUD();
-        updateHotbarUI();
-        showToast(`Đã mua 1 túi hạt ${cropInfo.name}!`);
-      } else {
-        showToast('Bạn không đủ tiền mua hạt giống này!');
+        const sign = new THREE.Mesh(signGeo, signMat);
+        sign.position.set(side * (ROAD_WIDTH / 2 + 5.9), 5.5, 0);
+        sign.rotation.y = (side === -1) ? Math.PI / 2 : -Math.PI / 2;
+        segGroup.add(sign);
       }
     });
-  });
-}
 
-function openCraftingModal() {
-  let html = `<div class="modal-grid-cards">`;
-  RECIPES_DATA.forEach(r => {
-    const matStr = Object.entries(r.materials).map(([k, v]) => `${v} ${k}`).join(', ');
-    html += `
-      <div class="modal-item-card">
-        <div class="card-icon">${r.icon}</div>
-        <div class="card-info">
-          <div class="card-title">${r.name}</div>
-          <div class="card-desc">${r.description}</div>
-          <div style="font-size:8px; color:#2b6cb0; margin-bottom:6px;">Yêu cầu: ${matStr}</div>
-          <button class="wood-btn btn-sm btn-craft" data-recipe="${r.id}">CHẾ TẠO</button>
-        </div>
-      </div>
-    `;
-  });
-  html += `</div>`;
-  openModal('Bàn Chế Tạo Nông Cụ Ba Vì', html);
+    segGroup.position.z = segZ;
+    scene.add(segGroup);
+    return segGroup;
+  }
 
-  document.querySelectorAll('.btn-craft').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const recId = btn.getAttribute('data-recipe');
-      const recipe = RECIPES_DATA.find(r => r.id === recId);
-      // Kiểm tra nguyên liệu
-      let canCraft = true;
-      for (const [mat, req] of Object.entries(recipe.materials)) {
-        if ((gameState.inventory[mat] || 0) < req) {
-          canCraft = false; break;
-        }
-      }
-      if (canCraft) {
-        for (const [mat, req] of Object.entries(recipe.materials)) {
-          gameState.inventory[mat] -= req;
-        }
-        Sound.playHarvest();
-        showToast(`Chế tạo thành công: ${recipe.name}! 🎉`);
-      } else {
-        showToast('Không đủ nguyên liệu để chế tạo món này!');
+  function buildRoadNetwork() {
+    for (let i = 0; i < TOTAL_SEGMENTS; i++) {
+      const seg = createRoadSegment(i);
+      roadSegments.push(seg);
+    }
+  }
+
+  function updateRoadRecycling() {
+    roadSegments.forEach(seg => {
+      // Khi xe vượt qua đoạn đường > 80m phía sau -> Bê lên đầu phía trước vô tận
+      if (seg.position.z < player.z - SEGMENT_LENGTH * 2) {
+        seg.position.z += TOTAL_SEGMENTS * SEGMENT_LENGTH;
       }
     });
-  });
-}
-
-function openInventoryModal() {
-  let seedsHtml = Object.entries(gameState.inventory.seeds)
-    .filter(([_, count]) => count > 0)
-    .map(([id, count]) => `<div>🌱 <b>${CROPS_DATA[id]?.name || id}</b>: ${count} túi <button class="wood-btn btn-sm btn-equip-seed" data-id="${id}">CHỌN</button></div>`)
-    .join('') || 'Chưa có hạt giống nào.';
-
-  let cropsHtml = Object.entries(gameState.inventory.crops)
-    .filter(([_, count]) => count > 0)
-    .map(([id, count]) => `<div>🌾 <b>${CROPS_DATA[id]?.name || id}</b>: ${count} quả</div>`)
-    .join('') || 'Chưa có nông sản thu hoạch.';
-
-  const html = `
-    <div style="display:flex; flex-direction:column; gap:12px;">
-      <div style="background:#e9ca93; padding:10px; border-radius:6px; border:2px solid #7c441b;">
-        <h3 style="font-size:11px; margin-bottom:6px; color:#7c2d12;">📦 Nguyên Liệu Thu Thập:</h3>
-        <div>🪵 Gỗ: ${gameState.inventory.wood || 0} | 🪨 Đá: ${gameState.inventory.stone || 0} | 🪨 Đồng: ${gameState.inventory.copper_ore || 0} | ⚙️ Sắt: ${gameState.inventory.iron_ore || 0}</div>
-      </div>
-      <div style="background:#e9ca93; padding:10px; border-radius:6px; border:2px solid #7c441b;">
-        <h3 style="font-size:11px; margin-bottom:6px; color:#7c2d12;">🌱 Túi Hạt Giống (Chọn hạt cho Slot 5):</h3>
-        ${seedsHtml}
-      </div>
-      <div style="background:#e9ca93; padding:10px; border-radius:6px; border:2px solid #7c441b;">
-        <h3 style="font-size:11px; margin-bottom:6px; color:#7c2d12;">🍅 Nông Sản Thu Hoạch:</h3>
-        ${cropsHtml}
-      </div>
-    </div>
-  `;
-  openModal('Túi Đồ Trang Trại (Ba Lô)', html);
-
-  document.querySelectorAll('.btn-equip-seed').forEach(btn => {
-    btn.addEventListener('click', () => {
-      gameState.selectedSeedId = btn.getAttribute('data-id');
-      updateHotbarUI();
-      closeAllModals();
-      showToast(`Đã gán hạt ${CROPS_DATA[gameState.selectedSeedId].name} vào thanh công cụ!`);
-    });
-  });
-}
-
-function openQuestsModal() {
-  let html = `<div style="display:flex; flex-direction:column; gap:10px;">`;
-  QUESTS_DATA.forEach(q => {
-    html += `
-      <div style="background:#e9ca93; padding:12px; border-radius:6px; border:2px solid #7c441b;">
-        <div style="font-size:11px; font-weight:bold; color:#7c2d12; margin-bottom:4px;">📜 ${q.title}</div>
-        <div style="font-size:9px; color:#5c3818; margin-bottom:6px;">${q.description}</div>
-        <div style="font-size:8px; color:#22543d; font-weight:bold;">Phần thưởng: 🪙 ${q.rewardGold} G</div>
-      </div>
-    `;
-  });
-  html += `</div>`;
-  openModal('Nhật Ký Nhiệm Vụ Nông Thôn', html);
-}
-
-// --- 13. HIỆU ỨNG HẠT (PARTICLES) ---
-function spawnDustParticles(x, y, color) {
-  for (let i = 0; i < 6; i++) {
-    particles.push({
-      x: x + (Math.random() - 0.5) * 16,
-      y: y + (Math.random() - 0.5) * 16,
-      vx: (Math.random() - 0.5) * 2,
-      vy: -Math.random() * 2 - 0.5,
-      size: Math.random() * 3 + 2,
-      color: color,
-      life: 20
-    });
-  }
-}
-
-function spawnWaterParticles(x, y) {
-  for (let i = 0; i < 8; i++) {
-    particles.push({
-      x: x + (Math.random() - 0.5) * 20,
-      y: y + (Math.random() - 0.5) * 20,
-      vx: (Math.random() - 0.5) * 1.5,
-      vy: -Math.random() * 2.5 - 1,
-      size: Math.random() * 2 + 2,
-      color: '#4299e1',
-      life: 18
-    });
-  }
-}
-
-function spawnSparkles(x, y) {
-  for (let i = 0; i < 10; i++) {
-    particles.push({
-      x: x + (Math.random() - 0.5) * 20,
-      y: y + (Math.random() - 0.5) * 20,
-      vx: (Math.random() - 0.5) * 3,
-      vy: (Math.random() - 0.5) * 3,
-      size: Math.random() * 3 + 1,
-      color: '#f6e05e',
-      life: 25
-    });
-  }
-}
-
-// --- 14. VẼ ĐỒ HỌA TOÀN BỘ (RENDER PIPELINE) ---
-let waterFrame = 0;
-let waterTimer = 0;
-
-function renderGame() {
-  ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-
-  waterTimer++;
-  if (waterTimer > 25) {
-    waterFrame = (waterFrame + 1) % 4;
-    waterTimer = 0;
   }
 
-  // 1. VẼ NỀN & AO NƯỚC & ĐẤT CÀY
-  for (let c = 0; c < COLS; c++) {
-    for (let r = 0; r < ROWS; r++) {
-      const tile = gameState.tiles[c][r];
-      const dx = c * TILE_SIZE;
-      const dy = r * TILE_SIZE;
+  // --- 8. HỆ THỐNG HẠT TIA LỬA & KHÓI PÔ (SPARKS & SMOKE) ---
+  function spawnSparks(x, y, z) {
+    const sparkGeo = new THREE.BufferGeometry();
+    const count = 25;
+    const pos = [];
+    const vels = [];
 
-      if (tile.type === 'water') {
-        if (ASSETS.water) {
-          ctx.drawImage(ASSETS.water, waterFrame * 16, 0, 16, 16, dx, dy, TILE_SIZE, TILE_SIZE);
-        } else {
-          ctx.fillStyle = '#3182ce';
-          ctx.fillRect(dx, dy, TILE_SIZE, TILE_SIZE);
-        }
-      } else {
-        if (ASSETS.grass) {
-          ctx.drawImage(ASSETS.grass, 16, 16, 16, 16, dx, dy, TILE_SIZE, TILE_SIZE);
-        } else {
-          ctx.fillStyle = '#68d391';
-          ctx.fillRect(dx, dy, TILE_SIZE, TILE_SIZE);
-        }
+    for (let i = 0; i < count; i++) {
+      pos.push(x, y, z);
+      vels.push(
+        (Math.random() - 0.5) * 12,
+        Math.random() * 8 + 2,
+        (Math.random() - 0.5) * 12
+      );
+    }
 
-        if (tile.tilled) {
-          if (ASSETS.tilled_dirt) {
-            ctx.drawImage(ASSETS.tilled_dirt, 0, 0, 16, 16, dx, dy, TILE_SIZE, TILE_SIZE);
-          } else {
-            ctx.fillStyle = tile.watered ? '#5c3a21' : '#a07855';
-            ctx.fillRect(dx, dy, TILE_SIZE, TILE_SIZE);
-          }
+    sparkGeo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    const sparkMat = new THREE.PointsMaterial({
+      color: 0xffea00,
+      size: 0.45,
+      transparent: true,
+      blending: THREE.AdditiveBlending
+    });
 
-          if (tile.watered) {
-            ctx.fillStyle = 'rgba(50, 25, 10, 0.42)';
-            ctx.fillRect(dx, dy, TILE_SIZE, TILE_SIZE);
-          }
-        }
+    const pSystem = new THREE.Points(sparkGeo, sparkMat);
+    scene.add(pSystem);
 
-        if (tile.decoration !== null && ASSETS.decorations) {
-          const decX = tile.decoration * 16;
-          ctx.drawImage(ASSETS.decorations, decX, 0, 16, 16, dx + 4, dy + 4, 24, 24);
-        }
+    sparkParticles.push({
+      mesh: pSystem,
+      vels: vels,
+      life: 1.0
+    });
+  }
+
+  function updateParticles(delta) {
+    for (let i = sparkParticles.length - 1; i >= 0; i--) {
+      const sp = sparkParticles[i];
+      sp.life -= delta * 3.5;
+      const positions = sp.mesh.geometry.attributes.position.array;
+
+      for (let j = 0; j < positions.length / 3; j++) {
+        positions[j * 3] += sp.vels[j * 3] * delta;
+        positions[j * 3 + 1] += sp.vels[j * 3 + 1] * delta;
+        positions[j * 3 + 2] += sp.vels[j * 3 + 2] * delta;
+        sp.vels[j * 3 + 1] -= 22 * delta; // Trọng lực
+      }
+
+      sp.mesh.geometry.attributes.position.needsUpdate = true;
+      sp.mesh.material.opacity = sp.life;
+
+      if (sp.life <= 0) {
+        scene.remove(sp.mesh);
+        sparkParticles.splice(i, 1);
       }
     }
   }
 
-  // 2. VẼ CÂY TRỒNG
-  for (let c = 0; c < COLS; c++) {
-    for (let r = 0; r < ROWS; r++) {
-      const tile = gameState.tiles[c][r];
-      if (tile.crop && ASSETS.plants) {
-        const dx = c * TILE_SIZE;
-        const dy = r * TILE_SIZE;
-        const stage = tile.crop.stage;
-        const cropInfo = CROPS_DATA[tile.crop.type] || CROPS_DATA.tomato;
-        const rowY = cropInfo.spriteRow * 16;
-        ctx.drawImage(ASSETS.plants, stage * 16, rowY, 16, 16, dx, dy - 6, TILE_SIZE, TILE_SIZE + 6);
-      }
-    }
-  }
+  // --- 9. CƠ CHẾ CHIẾN ĐẤU "ĐẠP NHAU" KIỂU ROAD RASH (BIKE COMBAT) ---
+  let screenShakeIntensity = 0;
 
-  // 3. CẢNH QUAN TĨNH
-  if (ASSETS.fences) {
-    scenery.fences.forEach(f => {
-      ctx.drawImage(ASSETS.fences, 0, 0, 16, 16, f.col * TILE_SIZE, f.row * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-    });
-  }
+  function executeKick(side) {
+    if (player.kickSide !== null) return;
+    initAudio();
+    player.kickSide = side;
+    player.kickTimer = 0.35; // Thời gian vung chân
 
-  if (ASSETS.house) {
-    ctx.drawImage(ASSETS.house, 0, 0, 96, 80, scenery.house.x, scenery.house.y, scenery.house.w, scenery.house.h);
-  }
-
-  if (ASSETS.chest) {
-    ctx.drawImage(ASSETS.chest, 0, 0, 16, 16, scenery.chest.col * TILE_SIZE, scenery.chest.row * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-  }
-
-  if (ASSETS.trees) {
-    scenery.trees.forEach(t => {
-      ctx.drawImage(ASSETS.trees, 0, 0, 48, 56, t.col * TILE_SIZE - 16, t.row * TILE_SIZE - 40, 64, 76);
-    });
-  }
-
-  // 4. VẼ CÁC NPC ĐANG HIỆN DIỆN
-  npcs.forEach(n => {
-    const nx = n.col * TILE_SIZE;
-    const ny = n.row * TILE_SIZE;
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-    ctx.beginPath();
-    ctx.ellipse(nx + 16, ny + 30, 10, 4, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.font = '22px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(n.avatar, nx + 16, ny + 24);
-
-    // Tên NPC trên đầu
-    ctx.font = '8px "Press Start 2P", monospace';
-    ctx.fillStyle = '#ffdf79';
-    ctx.fillText(n.name.split(' ')[0], nx + 16, ny - 6);
-  });
-
-  // 5. TIÊU ĐIỂM Ô TƯƠNG TÁC
-  const target = getFrontTile();
-  if (target) {
-    ctx.strokeStyle = 'rgba(255, 215, 0, 0.85)';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(target.col * TILE_SIZE, target.row * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-  }
-
-  // 6. NHÂN VẬT CHÍNH
-  drawPlayer();
-
-  // 7. HIỆU ỨNG HẠT & CHỮ NỔI
-  renderParticles();
-  renderFloatingTexts();
-
-  // 8. ÁNH SÁNG NGÀY & ĐÊM
-  renderDayNightLighting();
-
-  // 9. MÀN ĐEN KHI ĐI NGỦ
-  if (sleepFadeAlpha > 0) {
-    ctx.fillStyle = `rgba(0, 0, 0, ${sleepFadeAlpha})`;
-    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-  }
-}
-
-function drawPlayer() {
-  if (!ASSETS.character) {
-    ctx.fillStyle = '#f56565';
-    ctx.fillRect(player.x, player.y, 24, 32);
-    return;
-  }
-
-  let frameCol = 0;
-  if (player.isMoving) {
-    player.animTimer += 1;
-    if (player.animTimer > 8) {
-      player.frame = (player.frame + 1) % 4;
-      player.animTimer = 0;
-    }
-    frameCol = player.frame;
-  } else {
-    player.frame = 0;
-    frameCol = 0;
-  }
-
-  const frameRow = player.dir;
-  const sx = frameCol * 48;
-  const sy = frameRow * 48;
-
-  // Đổ bóng
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
-  ctx.beginPath();
-  ctx.ellipse(player.x + 16, player.y + 36, 10, 4, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.drawImage(ASSETS.character, sx, sy, 48, 48, player.x - 8, player.y - 12, 48, 48);
-
-  if (player.swinging > 0) {
-    player.swinging--;
-    ctx.save();
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-    ctx.beginPath();
-    ctx.arc(player.x + 16, player.y + 16, 18, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-}
-
-function renderParticles() {
-  for (let i = particles.length - 1; i >= 0; i--) {
-    const p = particles[i];
-    p.x += p.vx;
-    p.y += p.vy;
-    p.life--;
-    ctx.fillStyle = p.color;
-    ctx.fillRect(p.x, p.y, p.size, p.size);
-    if (p.life <= 0) particles.splice(i, 1);
-  }
-}
-
-function renderFloatingTexts() {
-  for (let i = floatingTexts.length - 1; i >= 0; i--) {
-    const ft = floatingTexts[i];
-    ft.y -= 0.6;
-    ft.alpha -= 0.02;
-    ctx.save();
-    ctx.font = '10px "Press Start 2P", monospace';
-    ctx.fillStyle = ft.color;
-    ctx.globalAlpha = Math.max(0, ft.alpha);
-    ctx.fillText(ft.text, ft.x - 12, ft.y);
-    ctx.restore();
-    if (ft.alpha <= 0) floatingTexts.splice(i, 1);
-  }
-}
-
-function renderDayNightLighting() {
-  const mins = gameState.timeMinutes;
-  let ambientColor = null;
-
-  if (mins >= 1020 && mins < 1170) {
-    const t = (mins - 1020) / 150;
-    ambientColor = `rgba(237, 137, 54, ${t * 0.28})`;
-  } else if (mins >= 1170 || mins < 360) {
-    ambientColor = 'rgba(26, 32, 44, 0.38)';
-  }
-
-  if (ambientColor) {
-    ctx.fillStyle = ambientColor;
-    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-  }
-}
-
-// --- 15. VẬT LÝ & VA CHẠM ---
-function updatePhysics() {
-  if (isSleeping || isFishingActive) return;
-
-  let dx = 0;
-  let dy = 0;
-
-  if (keys.w) { dy -= player.speed; player.dir = 1; }
-  if (keys.s) { dy += player.speed; player.dir = 0; }
-  if (keys.a) { dx -= player.speed; player.dir = 2; }
-  if (keys.d) { dx += player.speed; player.dir = 3; }
-
-  player.isMoving = (dx !== 0 || dy !== 0);
-
-  const nextX = Math.max(8, Math.min(CANVAS_W - 32, player.x + dx));
-  const nextY = Math.max(8, Math.min(CANVAS_H - 42, player.y + dy));
-
-  const checkCol = Math.floor((nextX + 16) / TILE_SIZE);
-  const checkRow = Math.floor((nextY + 28) / TILE_SIZE);
-
-  if (checkCol >= 0 && checkCol < COLS && checkRow >= 0 && checkRow < ROWS) {
-    const tile = gameState.tiles[checkCol][checkRow];
-    if (!tile || !tile.isSolid) {
-      player.x = nextX;
-      player.y = nextY;
-    }
-  }
-
-  if (actionRequested) {
-    const target = getFrontTile();
-    if (target) interactWithTile(target.col, target.row);
-    actionRequested = false;
-  }
-}
-
-// --- 16. CẬP NHẬT HUD & ĐỒNG HỒ ---
-function updateGameClock() {
-  if (isSleeping) return;
-  gameState.timeMinutes += 0.25;
-  if (gameState.timeMinutes >= 1440) gameState.timeMinutes = 0;
-
-  const totalMins = Math.floor(gameState.timeMinutes);
-  let hours = Math.floor(totalMins / 60);
-  const mins = totalMins % 60;
-  const period = hours >= 12 ? 'PM' : 'AM';
-  const displayHours = hours % 12 === 0 ? 12 : hours % 12;
-  const timeStr = `${String(displayHours).padStart(2, '0')}:${String(mins).padStart(2, '0')} ${period}`;
-
-  const timeEl = document.getElementById('hud-time');
-  if (timeEl) timeEl.innerText = `⏰ ${timeStr}`;
-}
-
-function updateHUD() {
-  const dayEl = document.getElementById('hud-day');
-  if (dayEl) dayEl.innerText = `NGÀY ${gameState.day}`;
-
-  const goldEl = document.getElementById('hud-gold');
-  if (goldEl) goldEl.innerText = `🪙 ${gameState.gold} G`;
-
-  const energyEl = document.getElementById('hud-energy');
-  if (energyEl) {
-    energyEl.innerText = `⚡ NĂNG LƯỢNG: ${gameState.energy}/100`;
-    energyEl.style.color = gameState.energy > 30 ? '#228b22' : '#e53e3e';
-  }
-
-  const seedNameEl = document.getElementById('hotbar-seed-name');
-  if (seedNameEl) {
-    const curSeed = CROPS_DATA[gameState.selectedSeedId] || CROPS_DATA.tomato;
-    const count = gameState.inventory.seeds[gameState.selectedSeedId] || 0;
-    seedNameEl.innerText = `${curSeed.name.split(' ')[0]} (${count})`;
-  }
-}
-
-function updateHotbarUI() {
-  document.querySelectorAll('.hotbar-slot').forEach(slot => {
-    const idx = parseInt(slot.getAttribute('data-slot'));
-    if (idx === player.selectedSlot) {
-      slot.classList.add('active');
+    // Animation vung chân người chơi
+    if (side === 'left') {
+      playerRider.leftLeg.position.x = -0.85;
+      playerRider.leftLeg.rotation.z = 0.9;
     } else {
-      slot.classList.remove('active');
+      playerRider.rightLeg.position.x = 0.85;
+      playerRider.rightLeg.rotation.z = -0.9;
     }
-  });
-  updateHUD();
-}
 
-function renderHotbarIcons() {
-  for (let slot = 0; slot < 6; slot++) {
-    const c = document.getElementById(`icon-slot-${slot}`);
-    if (!c) continue;
-    const cctx = c.getContext('2d');
-    cctx.imageSmoothingEnabled = false;
-    cctx.clearRect(0, 0, 32, 32);
+    // Kiểm tra va chạm với đối thủ trong tầm đạp (Khoảng cách < 3.2m)
+    let hitOpponent = null;
+    opponents.forEach(op => {
+      if (op.isDown) return;
+      const dz = Math.abs(op.z - player.z);
+      const dx = op.x - player.x;
 
-    switch (slot) {
-      case 0: // Cuốc (Hoe)
-        if (ASSETS.tools_and_materials) {
-          cctx.drawImage(ASSETS.tools_and_materials, 0, 0, 16, 16, 4, 4, 24, 24);
+      if (dz < 2.8) {
+        if (side === 'left' && dx < -0.4 && dx > -3.4) {
+          hitOpponent = op;
+        } else if (side === 'right' && dx > 0.4 && dx < 3.4) {
+          hitOpponent = op;
         }
-        break;
-      case 1: // Bình tưới (Watering Can)
-        if (ASSETS.tools_and_materials) {
-          cctx.drawImage(ASSETS.tools_and_materials, 16, 0, 16, 16, 4, 4, 24, 24);
-        }
-        break;
-      case 2: // Rìu (Axe)
-        if (ASSETS.tools_and_materials) {
-          cctx.drawImage(ASSETS.tools_and_materials, 32, 0, 16, 16, 4, 4, 24, 24);
-        }
-        break;
-      case 3: // Cần câu (Fishing Rod)
-        cctx.font = '20px Arial';
-        cctx.fillText('🎣', 4, 24);
-        break;
-      case 4: // Hạt giống đang chọn
-        if (ASSETS.plants) {
-          const curCrop = CROPS_DATA[gameState.selectedSeedId] || CROPS_DATA.tomato;
-          const rY = curCrop.spriteRow * 16;
-          cctx.drawImage(ASSETS.plants, 80, rY, 16, 16, 4, 4, 24, 24);
-        }
-        break;
-      case 5: // Tay thu hoạch (Hand)
-        cctx.font = '20px Arial';
-        cctx.fillText('🖐️', 4, 24);
-        break;
+      }
+    });
+
+    if (hitOpponent) {
+      // ĐẠP TRÚNG!
+      playKickHit();
+      hitOpponent.isDown = true;
+      hitOpponent.downTimer = 4.0; // Bị ngã cày mặt đường 4 giây
+      hitOpponent.speed = 10;
+      hitOpponent.mesh.rotation.z = (side === 'left') ? -1.4 : 1.4; // Đổ rạp xe
+
+      spawnSparks(hitOpponent.x, 0.6, hitOpponent.z);
+      screenShakeIntensity = 0.45;
+
+      player.knockouts++;
+      player.nitro = Math.min(100, player.nitro + 35); // Hồi 35% Nitro khi hạ gục
+
+      showBanner(
+        '💥 HẠ GỤC ĐỐI THỦ!',
+        `BẠN ĐÃ ĐẠP VĂNG ${hitOpponent.name.toUpperCase()} (+200 PTS)!`
+      );
+      updateHUD();
     }
   }
-}
 
-let toastTimeout = null;
-function showToast(msg) {
-  const toast = document.getElementById('toast-msg');
-  if (!toast) return;
-  toast.innerText = msg;
-  toast.classList.add('show');
-  clearTimeout(toastTimeout);
-  toastTimeout = setTimeout(() => {
-    toast.classList.remove('show');
-  }, 2800);
-}
+  function updateKickAnimation(delta) {
+    if (player.kickSide !== null) {
+      player.kickTimer -= delta;
+      if (player.kickTimer <= 0) {
+        player.kickSide = null;
+        // Thu chân về vị trí ban đầu
+        playerRider.leftLeg.position.set(-0.32, 1.15, -0.15);
+        playerRider.leftLeg.rotation.z = 0;
+        playerRider.rightLeg.position.set(0.32, 1.15, -0.15);
+        playerRider.rightLeg.rotation.z = 0;
+      }
+    }
+  }
 
-// --- 17. SỰ KIỆN GIAO DIỆN & MODAL ---
-function setupUIEvents() {
-  document.getElementById('btn-inventory')?.addEventListener('click', openInventoryModal);
-  document.getElementById('btn-shop')?.addEventListener('click', openShopModal);
-  document.getElementById('btn-crafting')?.addEventListener('click', openCraftingModal);
-  document.getElementById('btn-quests')?.addEventListener('click', openQuestsModal);
-  document.getElementById('btn-sleep')?.addEventListener('click', sleepNextDay);
-  document.getElementById('btn-modal-close')?.addEventListener('click', closeAllModals);
+  // --- 10. VẬT LÝ XE MÁY & ĐIỀU KHIỂN CHI TIẾT ---
+  function updatePlayerPhysics(delta) {
+    // 1. Ga & Phanh
+    const maxS = player.isBoosting ? 168 : player.maxSpeed;
 
-  document.getElementById('btn-dialogue-close')?.addEventListener('click', closeDialogue);
-  document.getElementById('btn-dialogue-gift')?.addEventListener('click', () => {
-    showToast('Bạn đã tặng một món quà ý nghĩa! Điểm thân thiết tăng thêm ❤️!');
-    closeDialogue();
-  });
+    if (input.gas) {
+      player.speed = Math.min(maxS, player.speed + player.accel * delta);
+    } else if (input.brake) {
+      player.speed = Math.max(0, player.speed - player.brake * delta);
+    } else {
+      player.speed = Math.max(0, player.speed - 16 * delta); // Ma sát tự nhiên
+    }
 
-  const soundBtn = document.getElementById('btn-sound');
-  if (soundBtn) {
-    soundBtn.addEventListener('click', () => {
+    // 2. Nitro Boost (Shift)
+    if (input.boost && player.nitro > 0 && player.speed > 30) {
+      player.isBoosting = true;
+      player.nitro = Math.max(0, player.nitro - 35 * delta);
+      player.speed = Math.min(168, player.speed + 45 * delta);
+    } else {
+      player.isBoosting = false;
+      player.nitro = Math.min(100, player.nitro + 6 * delta); // Tự hồi Nitro chậm
+    }
+
+    // 3. Đánh võng & Bẻ lái (Steering & Leaning)
+    const steerSpeed = player.handling * (player.speed / player.maxSpeed);
+    let targetLean = 0;
+
+    if (input.left) {
+      player.x -= steerSpeed * delta;
+      targetLean = 0.42;
+    } else if (input.right) {
+      player.x += steerSpeed * delta;
+      targetLean = -0.42;
+    }
+
+    // Ràng buộc làn đường (Không đi xuyên ra khỏi vỉa hè)
+    player.x = Math.max(-ROAD_WIDTH / 2 + 1.2, Math.min(ROAD_WIDTH / 2 - 1.2, player.x));
+
+    // Hiệu ứng nghiêng xe ôm cua
+    player.leanAngle += (targetLean - player.leanAngle) * 12 * delta;
+
+    // Di chuyển xe theo trục Z (Quãng đường)
+    const moveZ = (player.speed * 1000 / 3600) * delta;
+    player.z += moveZ;
+    player.distanceTraveled += moveZ;
+
+    // Cập nhật vị trí và góc nghiêng của Mesh xe máy
+    playerBike.position.set(player.x, 0, player.z);
+    playerBike.rotation.z = player.leanAngle;
+    playerBike.rotation.y = player.leanAngle * 0.4;
+
+    // Lăn bánh xe
+    const wheelRot = moveZ * 2.2;
+    playerRider.wheels[0].rotation.x += wheelRot;
+    playerRider.wheels[1].rotation.x += wheelRot;
+
+    // 4. Va chạm với Xe Buýt trên đường (Bus Collision)
+    trafficVehicles.forEach(bus => {
+      const dz = Math.abs(bus.z - player.z);
+      const dx = Math.abs(bus.x - player.x);
+      if (dz < 6.5 && dx < 2.4) {
+        // Tông vào xe buýt!
+        playCrashSound();
+        player.speed = Math.max(15, player.speed * 0.4);
+        spawnSparks(player.x, 1.2, player.z + 1.5);
+        screenShakeIntensity = 0.7;
+        showBanner('⚠️ VA CHẠM XE BUÝT!', 'LÁI CẨN THẬN HƠN!');
+      }
+    });
+
+    updateEngineSound();
+  }
+
+  // --- 11. CẬP NHẬT ĐỐI THỦ AI & XE GIAO THÔNG ---
+  function updateOpponents(delta) {
+    opponents.forEach(op => {
+      if (op.isDown) {
+        op.downTimer -= delta;
+        op.speed = 15;
+        if (op.downTimer <= 0) {
+          op.isDown = false;
+          op.mesh.rotation.z = 0; // Đứng dậy đua tiếp
+          op.speed = op.baseSpeed;
+        }
+      } else {
+        // AI tự động lượn lách nhẹ nhàng
+        op.speed = op.baseSpeed + Math.sin(op.z * 0.05) * 8;
+        op.x += Math.sin(op.z * 0.03 + op.id) * 3.5 * delta;
+        op.x = Math.max(-ROAD_WIDTH / 2 + 2, Math.min(ROAD_WIDTH / 2 - 2, op.x));
+      }
+
+      const opMoveZ = (op.speed * 1000 / 3600) * delta;
+      op.z += opMoveZ;
+      op.mesh.position.set(op.x, 0, op.z);
+    });
+
+    // Cập nhật xe buýt
+    trafficVehicles.forEach(bus => {
+      const busMoveZ = (bus.speed * 1000 / 3600) * delta;
+      bus.z += busMoveZ;
+
+      // Xe buýt chạy lùi về phía trước người chơi liên tục
+      if (bus.z < player.z - 40) {
+        bus.z = player.z + 240 + Math.random() * 80;
+        bus.x = (Math.random() < 0.5) ? -4.5 : 4.5;
+      }
+      bus.mesh.position.set(bus.x, 0, bus.z);
+    });
+
+    // Tính toán thứ hạng người chơi (Rank 1st..6th)
+    let aheadCount = 0;
+    opponents.forEach(op => {
+      if (op.z > player.z) aheadCount++;
+    });
+    player.rank = aheadCount + 1;
+  }
+
+  // --- 12. CAMERA ĐIỆN ẢNH BÁM THEO XE ---
+  function updateCamera() {
+    let targetCamX = player.x * 0.45;
+    let targetCamY = 3.6;
+    let targetCamZ = player.z - 6.5;
+
+    // Rung màn hình khi va chạm hoặc cọ quẹt (Screen Shake)
+    if (screenShakeIntensity > 0) {
+      targetCamX += (Math.random() - 0.5) * screenShakeIntensity * 2;
+      targetCamY += (Math.random() - 0.5) * screenShakeIntensity * 2;
+      screenShakeIntensity = Math.max(0, screenShakeIntensity - 0.03);
+    }
+
+    camera.position.set(targetCamX, targetCamY, targetCamZ);
+    camera.lookAt(player.x * 0.2, 1.4, player.z + 18);
+  }
+
+  // --- 13. CẬP NHẬT GIAO DIỆN HUD ---
+  function updateHUD() {
+    const speedEl = document.getElementById('hud-speed');
+    if (speedEl) speedEl.innerText = Math.round(player.speed);
+
+    const rankEl = document.getElementById('hud-rank');
+    if (rankEl) rankEl.innerHTML = `${player.rank}<span class="rank-sup">/6</span>`;
+
+    const distEl = document.getElementById('hud-distance');
+    if (distEl) distEl.innerText = `${Math.round(player.distanceTraveled)} m`;
+
+    const koEl = document.getElementById('hud-ko');
+    if (koEl) koEl.innerText = `⚔️ ${player.knockouts}`;
+
+    const nitroFill = document.getElementById('nitro-fill');
+    if (nitroFill) nitroFill.style.width = `${Math.round(player.nitro)}%`;
+  }
+
+  let bannerTimeout = null;
+  function showBanner(title, sub) {
+    const banner = document.getElementById('center-banner');
+    const titleEl = document.getElementById('banner-title');
+    const subEl = document.getElementById('banner-sub');
+    if (!banner || !titleEl || !subEl) return;
+
+    titleEl.innerText = title;
+    subEl.innerText = sub;
+    banner.classList.add('show');
+
+    clearTimeout(bannerTimeout);
+    bannerTimeout = setTimeout(() => {
+      banner.classList.remove('show');
+    }, 2400);
+  }
+
+  // --- 14. BỘ ĐIỀU KHIỂN INPUT (BÀN PHÍM, CHUỘT, TAY CẦM, TOUCH) ---
+  function setupInputEvents() {
+    window.addEventListener('keydown', e => {
+      initAudio();
+      const k = e.key.toLowerCase();
+      if (k === 'w' || e.key === 'ArrowUp') input.gas = true;
+      if (k === 's' || e.key === 'ArrowDown') input.brake = true;
+      if (k === 'a' || e.key === 'ArrowLeft') input.left = true;
+      if (k === 'd' || e.key === 'ArrowRight') input.right = true;
+      if (e.key === 'Shift') input.boost = true;
+      if (k === 'j') executeKick('left');
+      if (k === 'k') executeKick('right');
+      if (k === 'h') playHorn();
+    });
+
+    window.addEventListener('keyup', e => {
+      const k = e.key.toLowerCase();
+      if (k === 'w' || e.key === 'ArrowUp') input.gas = false;
+      if (k === 's' || e.key === 'ArrowDown') input.brake = false;
+      if (k === 'a' || e.key === 'ArrowLeft') input.left = false;
+      if (k === 'd' || e.key === 'ArrowRight') input.right = false;
+      if (e.key === 'Shift') input.boost = false;
+    });
+
+    // Chuột Trái = Đạp Trái, Chuột Phải = Đạp Phải
+    window.addEventListener('mousedown', e => {
+      initAudio();
+      if (e.button === 0) executeKick('left');
+      if (e.button === 2) executeKick('right');
+    });
+
+    window.addEventListener('contextmenu', e => e.preventDefault());
+
+    // Nút Header
+    document.getElementById('btn-sound')?.addEventListener('click', () => {
+      initAudio();
       soundEnabled = !soundEnabled;
-      soundBtn.innerText = soundEnabled ? '🔊 ÂM THANH' : '🔇 TẮT ÂM';
-      showToast(soundEnabled ? 'Đã bật âm thanh retro!' : 'Đã tắt âm thanh');
+      const btn = document.getElementById('btn-sound');
+      if (btn) btn.innerText = soundEnabled ? '🔊' : '🔇';
+    });
+
+    document.getElementById('btn-horn')?.addEventListener('click', () => {
+      initAudio();
+      playHorn();
+    });
+
+    // Cảm ứng điện thoại (Touch controls)
+    const bindTouch = (id, onDown, onUp) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('touchstart', e => { e.preventDefault(); initAudio(); onDown(); });
+      el.addEventListener('touchend', e => { e.preventDefault(); onUp(); });
+    };
+
+    bindTouch('touch-gas', () => input.gas = true, () => input.gas = false);
+    bindTouch('touch-brake', () => input.brake = true, () => input.brake = false);
+    bindTouch('touch-left', () => input.left = true, () => input.left = false);
+    bindTouch('touch-right', () => input.right = true, () => input.right = false);
+
+    document.getElementById('touch-kick-l')?.addEventListener('touchstart', e => {
+      e.preventDefault(); executeKick('left');
+    });
+    document.getElementById('touch-kick-r')?.addEventListener('touchstart', e => {
+      e.preventDefault(); executeKick('right');
     });
   }
 
-  document.querySelectorAll('.hotbar-slot').forEach(slot => {
-    slot.addEventListener('click', () => {
-      player.selectedSlot = parseInt(slot.getAttribute('data-slot'));
-      updateHotbarUI();
-    });
+  // Polling Tay Cầm Gamepad
+  let prevGpButtons = {};
+  function pollGamepad() {
+    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+    if (!gamepads || !gamepads[0]) return;
+    const gp = gamepads[0];
+
+    const ax = gp.axes[0] || 0;
+    input.left = gp.buttons[14]?.pressed || ax < -0.35;
+    input.right = gp.buttons[15]?.pressed || ax > 0.35;
+
+    // Nút RT hoặc A: Ga
+    input.gas = gp.buttons[7]?.pressed || gp.buttons[0]?.pressed;
+    // Nút LT hoặc B: Phanh
+    input.brake = gp.buttons[6]?.pressed || gp.buttons[1]?.pressed;
+
+    // Nút X (Đạp Trái)
+    if (gp.buttons[2]?.pressed && !prevGpButtons[2]) executeKick('left');
+    prevGpButtons[2] = gp.buttons[2]?.pressed;
+
+    // Nút B (Đạp Phải)
+    if (gp.buttons[1]?.pressed && !prevGpButtons[1]) executeKick('right');
+    prevGpButtons[1] = gp.buttons[1]?.pressed;
+
+    // Nút RB (Boost)
+    input.boost = gp.buttons[5]?.pressed;
+  }
+
+  // --- 15. GAME LOOP CHÍNH (60 FPS) ---
+  let lastTime = performance.now();
+
+  function animate(now) {
+    requestAnimationFrame(animate);
+
+    const delta = Math.min(0.06, (now - lastTime) / 1000);
+    lastTime = now;
+
+    pollGamepad();
+    updatePlayerPhysics(delta);
+    updateKickAnimation(delta);
+    updateOpponents(delta);
+    updateRoadRecycling();
+    updateParticles(delta);
+    updateCamera();
+    updateHUD();
+
+    renderer.render(scene, camera);
+  }
+
+  // Khởi động
+  window.addEventListener('DOMContentLoaded', () => {
+    initThree();
+    setupInputEvents();
+    showBanner('BÃO ĐÊM PHỐ CỔ 🏍️', 'NHẤN [W] ĐỂ PHÓNG GA! NHẤN [J]/[K] ĐỂ ĐẠP ĐỐI THỦ!');
+    requestAnimationFrame(animate);
   });
-}
 
-// --- 18. GAME LOOP ---
-function gameLoop() {
-  pollGamepad();
-  updatePhysics();
-  updateGameClock();
-  renderGame();
-  requestAnimationFrame(gameLoop);
-}
-
-// Bắt đầu khởi động
-loadAssets(() => {
-  loadGame();
-  setupUIEvents();
-  updateHUD();
-  updateHotbarUI();
-  renderHotbarIcons();
-  showToast('Chào mừng bạn đến với nông trại Hà Nội Chill! 🌾');
-  requestAnimationFrame(gameLoop);
-});
+})();

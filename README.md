@@ -1,107 +1,71 @@
-# Hà Nội Chill 🌾 (Harvest Tales)
-**2D Pixel Art Farming & Life Simulation RPG**  
-*Lấy cảm hứng từ kiệt tác Stardew Valley với phong vị nông thôn Bắc Bộ và ngoại ô Hà Nội.*
+# Hà Nội Midnight Rush 🏍️💨
+**Bão Đêm Phố Cổ (Road Rash 3D Edition)**  
+*Tựa game đua xe máy đường phố 3D phong cách Road Rash huyền thoại kết hợp với khung cảnh đêm phố cổ Hà Nội.*
 
 ---
 
-## 🌐 Chơi Trực Tiếp Trên Trình Duyệt (Web & Mobile & Gamepad)
+## 🌐 Chơi Trực Tiếp Trên Trình Duyệt (Web & Mobile & Tay Cầm Gamepad)
 👉 **Link chơi trực tuyến:** [https://dungautomation-dev.github.io/hanoi-chill/](https://dungautomation-dev.github.io/hanoi-chill/)  
 👉 **Kho mã nguồn GitHub:** [https://github.com/Dungautomation-dev/hanoi-chill](https://github.com/Dungautomation-dev/hanoi-chill)
 
 ---
 
-## 📖 Giới Thiệu
-**Hà Nội Chill** đưa bạn rời xa sự ngột ngạt của phố thị tấp nập để về tiếp quản trang trại gia đình dưới chân núi Ba Vì. Trò chơi tái hiện đầy đủ khoảng 90% các cơ chế cốt lõi của Stardew Valley: từ cuốc đất, gieo hạt, tưới nước, sinh trưởng theo mùa, thu hoạch nhiều lần, quản lý thể lực, chế tạo vật dụng, câu cá Hồ Tây cho đến giao lưu với 8 nhân vật làng quê đậm chất Hà Nội.
+## 🌟 Điểm Nổi Bật & Đồ Họa 3D Điện Ảnh
+
+### 🌃 1. Đồ Họa 3D Three.js Ánh Sáng Đêm Phố Cổ
+- **Mặt đường nhựa phản chiếu (Wet Asphalt):** Mặt đường 4 làn xe với vạch kẻ vàng phản quang, bóng nước lấp lánh dưới ánh đèn.
+- **Ánh sáng điện ảnh (Cinematic Lighting):**
+  - Đèn pha xe SpotLight thực tế rọi đường phía trước theo thời gian thực.
+  - Cột đèn cao áp ánh vàng ấm rải đều hai bên vỉa hè.
+  - Sương mù đêm Hà Nội huyền ảo (Atmospheric Night Fog).
+  - Dãy nhà ống phố cổ san sát cùng các biển hiệu Neon rực rỡ (*PHỞ BÁT ĐÀN, BIA HƠI HÀ NỘI, CAFE TRỨNG, TRÀ ĐÁ VỈA HÈ...*).
+  - Hàng cây xà cừ cổ thụ rợp bóng mát hai bên đường.
+
+### ⚔️ 2. Cơ Chế Chiến Đấu "Đạp Nhau" Cực Đã (Road Rash Mechanics)
+- **Đạp Trái (<kbd>J</kbd> / Click Trái)** & **Đạp Phải (<kbd>K</kbd> / Click Phải)**:
+  - Khi chạy song song áp sát đối thủ, tung cú đạp mạnh khiến xe đối thủ mất thăng bằng, loạng choạng cày xước mặt đường và văng khỏi đường đua!
+  - Hiệu ứng tia lửa điện (Sparks Particles) bắn tung tóe kèm rung giật camera (Screen Shake) cực đã tay!
+  - Hạ gục đối thủ nhận điểm thưởng KNOCKOUT và hồi thanh Nitro Boost!
+
+### 🚌 3. Giao Thông & Đối Thủ Phố Cổ Hài Hước
+- **Xe Buýt Hà Nội Số 01 / 02:** Những chiếc xe buýt vàng - đỏ to đùng lù lù trên làn đường đòi hỏi bạn phải lách tay lái điệu nghệ để tránh tông xe.
+- **5 Tay đua đối thủ khét tiếng:**
+  - *Hùng "Tổ Lái" (Xe Dream Đỏ)*
+  - *Tuấn "Wave Chiến" (Xe Wave Xanh)*
+  - *Lan "Bão Đêm" (Xe Cub 50 Độ)*
+  - *Dũng "Pô Nổ" (Xe Sirius Đen)*
+  - *Sơn "Liều Mạng" (Xe Exciter Đỏ)*
+
+### 🔊 4. Âm Thanh Retro Synthesizer Độc Lập
+- Tiếng pô xe máy gầm rú tăng cao độ theo vòng tua ga (RPM modulation).
+- Tiếng đạp xe va quẹt côm cốp kim loại.
+- Tiếng còi xe máy phố cổ bíp bíp inh ỏi (<kbd>Phím H</kbd>).
 
 ---
 
-## 🌟 Các Tính Năng Đã Triển Khai (~90% Core Gameplay)
+## 🎮 Hướng Dẫn Điều Khiển
 
-### 1. 🚜 Nông Nghiệp & 12+ Cây Trồng Đặc Trưng
-- Hệ thống ô đất: đất cỏ, đất cuốc (Tilled Dirt), đất tưới đẫm nước (Watered Dirt).
-- **12+ loại cây trồng có dữ liệu riêng biệt:**
-  - *Mùa Xuân:* Cà chua bi Ba Vì (thu hoạch nhiều đợt), Dâu tây ôn đới, Khoai tây Thường Tín, Cà rốt Đông Anh.
-  - *Mùa Hạ:* Bắp ngô nếp bãi bồi (thu hoạch nhiều đợt), Dưa hấu giải nhiệt, Ớt chỉ thiên, Lúa mì.
-  - *Mùa Thu:* Bí ngô khổng lồ, Cà tím quả dài, Hoa hướng dương, Bắp nếp.
-  - *Mùa Đông:* Bắp cải cuộn vụ đông, Cà rốt.
-- **Quy tắc sinh trưởng nghiêm ngặt:** Cây chỉ lớn thêm 1 giai đoạn nếu ngày hôm trước được tưới nước.
-- **Thu hoạch & Bán hàng:** Nhận tiền vàng (Gold 🪙) và tích trữ nông sản trong ba lô.
+### ⌨️ Bàn Phím & Chuột:
+- **Tăng ga / Phóng nhanh:** <kbd>W</kbd> hoặc <kbd>Mũi tên lên</kbd>
+- **Phanh xe:** <kbd>S</kbd> hoặc <kbd>Mũi tên xuống</kbd>
+- **Lượn trái / Lượn phải:** <kbd>A</kbd> / <kbd>D</kbd> hoặc <kbd>Mũi tên trái / phải</kbd>
+- **Đạp bên trái:** <kbd>J</kbd> hoặc <kbd>Click Chuột Trái</kbd>
+- **Đạp bên phải:** <kbd>K</kbd> hoặc <kbd>Click Chuột Phải</kbd>
+- **Nitro Boost (Tăng tốc xé gió):** <kbd>Shift</kbd>
+- **Bấm còi bim bim:** <kbd>H</kbd>
 
-### 2. 👥 Hệ Thống 8 NPC Hà Nội & Hội Thoại
-- **Bác Ba (Cây Bàng):** Lão nông tri điền hiền hậu, chỉ dẫn kinh nghiệm làm nông.
-- **Chị Lan (Trà Đá):** Bà chủ quán nước đầu làng, nắm bắt mọi tin tức địa phương.
-- **Cụ Rùa:** Trưởng lão hiền từ bên bến nước Hồ Tây.
-- **Chú Tuấn (Thợ Rèn):** Thợ kim hoàn & rèn nông cụ phố cũ.
-- **Cô Mai (Bách Hóa):** Cung cấp các loại hạt giống nông sản bốn mùa.
-- **Em Hương (Tiệm Bánh):** Thợ làm bánh hoa quả ngọt ngào.
-- **Anh Dũng (Kỹ Sư):** Chế tạo máy móc tự động hóa và vòi phun nước.
-- **Ông Bình (Trưởng Thôn):** Giao phó các nhiệm vụ phát triển làng xóm.
-- Tương tác mở hộp thoại gỗ phong cách retro, có hệ thống tặng quà và tăng điểm tim thân thiết ❤️.
+### 🎮 Tay Cầm (Gamepad Xbox / PlayStation):
+- **Bẻ lái:** Cần Analog Trái hoặc D-Pad.
+- **Ga / Phanh:** Nút <kbd>RT</kbd> / <kbd>LT</kbd> (hoặc nút <kbd>A</kbd> / <kbd>B</kbd>).
+- **Đạp Trái:** Nút <kbd>X</kbd> (hoặc ⬛ trên PS).
+- **Đạp Phải:** Nút <kbd>B</kbd> (hoặc 🔴 trên PS).
+- **Nitro Boost:** Nút <kbd>RB</kbd>.
 
-### 3. 🎣 Câu Cá Hồ Tây (Interactive Fishing Minigame)
-- Quăng cần câu tại mép ao nước Ba Vì hoặc bờ Hồ Tây.
-- Minigame giữ thanh cân bằng bám theo cá nhảy với thanh tiến trình.
-- Bắt các loài cá: *Cá chép Hồ Tây, Cá rô phi, Cá trắm đen, Tôm sông Hồng, Cá chép vàng tài lộc*.
-
-### 4. 🔨 Chế Tạo & Khai Khoáng (Crafting System)
-- Chặt cây thu Gỗ (Wood), đập đá thu Đá (Stone) và Quặng đồng/sắt.
-- Menu chế tạo trực tiếp:
-  - **Rương gỗ (Chest):** Chứa đồ đạc.
-  - **Hàng rào gỗ (Wood Fence):** Quây trang trại.
-  - **Vòi phun nước tự động (Sprinkler):** Tưới nước tự động mỗi sáng.
-  - **Bù nhìn rơm (Scarecrow):** Bảo vệ mùa màng.
-  - **Salad Hà Nội:** Món ăn thanh mát hồi phục 60 thể lực.
-
-### 5. ⏰ Thời Gian 24h & Chu Kỳ Ngày / Đêm / 4 Mùa
-- Đồng hồ chạy liên tục từ 06:00 AM đến 02:00 AM.
-- Ánh sáng thời gian thực: ban ngày trong trẻo, ánh hoàng hôn vàng cam ấm áp, ánh đêm xanh thẫm.
-- Đi ngủ (Sleep cycle) chuyển sang ngày mới, hồi phục 100% năng lượng.
-
-### 6. 🎮 Hỗ Trợ Đa Thiết Bị & Tay Cầm (Gamepad Native)
-- **Bàn phím:** <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> di chuyển, <kbd>Space</kbd> hành động, phím <kbd>1</kbd>-<kbd>6</kbd> chọn đồ nhanh, <kbd>E</kbd> mở Túi đồ.
-- **Chuột:** Click trực tiếp vào ô đất bất kỳ trong tầm tương tác.
-- **Tay cầm Xbox / PlayStation:** Plug-and-play qua Gamepad API (Cần Analog di chuyển, nút <kbd>A</kbd>/<kbd>✖️</kbd> hành động, nút <kbd>LB</kbd>/<kbd>RB</kbd> đổi đồ, nút <kbd>Y</kbd>/<kbd>🔺</kbd> mở túi đồ, <kbd>Start</kbd> đi ngủ, <kbd>Select</kbd> lưu game).
-
-### 7. 💾 Lưu Game Tự Động (Save / Load)
-- Toàn bộ vị trí nhân vật, ngày giờ, tình trạng 375 ô đất, giai đoạn từng cây trồng, túi đồ và tiền vàng được lưu vào `LocalStorage`. Tắt máy mở lại tiếp tục chơi nguyên vẹn.
-
----
-
-## 📁 Cấu Trúc Mã Nguồn & Tài Liệu
-```
-hanoi-chill/
-├── index.html                    # Giao diện game và các cửa sổ Modal
-├── style.css                     # Retro pixel art UI styling
-├── game.js                       # Game Loop & Engine chính
-├── docs/
-│   ├── GDD.md                    # Tài liệu thiết kế game chi tiết
-│   ├── ARCHITECTURE.md           # Phân tích mã nguồn Stardew Valley & Kiến trúc
-│   ├── ROADMAP.md                # Lộ trình phát triển tính năng
-│   ├── STATUS.md                 # Báo cáo nghiệm thu & tỷ lệ hoàn thiện
-│   ├── TESTING.md                # Hướng dẫn kiểm thử
-│   └── ASSET_LICENSES.md         # Nguồn gốc tài nguyên đồ họa & giấy phép
-├── assets/                       # Spritesheets pixel art 16-bit
-├── src/
-│   └── data/
-│       ├── CropsData.js          # Dữ liệu 12+ cây trồng
-│       ├── NPCsData.js           # Dữ liệu 8 NPC Hà Nội
-│       └── RecipesData.js        # Dữ liệu chế tạo, cá và nhiệm vụ
-└── tests/
-    └── unit_tests.js             # Bộ kiểm thử tự động (Unit Tests)
-```
-
----
-
-## 🧪 Chạy Kiểm Thử Tự Động
-Trong thư mục dự án, chạy lệnh:
-```bash
-node tests/unit_tests.js
-```
-Kết quả kiểm thử: **20/20 Test Cases Passed (100%)**.
+### 📱 Màn Hình Cảm Ứng (Điện Thoại):
+- Tự động hiển thị bàn đạp Ga, Phanh, Nút Rẽ và 2 Nút Đạp Trái / Đạp Phải to rõ ở hai góc màn hình!
 
 ---
 
 ## 📄 Bản Quyền
-- Mã nguồn được phát hành theo giấy phép **MIT License**.
-- Đồ họa sử dụng bộ pixel art mã nguồn mở **Sprout Lands** của tác giả **Cup Nooble** (Non-commercial license).
-- Tuyệt đối không sao chép mã nguồn hay tài nguyên thương mại độc quyền của Stardew Valley.
+- Được phát hành theo giấy phép **MIT License**.
+- Đồ họa Three.js 3D được render thời gian thực (Zero asset nặng, tải cực nhanh trong 1 giây).

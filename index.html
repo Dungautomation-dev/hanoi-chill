@@ -2,149 +2,121 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hà Nội Chill - Nông Trại Ba Vì (Harvest Tales)</title>
-  <link rel="stylesheet" href="style.css?v=2.5">
-  <link rel="icon" href="assets/plants.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Hà Nội Midnight Rush - Bão Đêm Phố Cổ 3D 🏍️💨</title>
+  <link rel="stylesheet" href="style.css?v=3.0">
+  <!-- Load Three.js 3D Engine -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-  <!-- Game Banner Header -->
-  <header class="game-header">
-    <div class="brand-title">
-      <h1>Hà Nội Chill 🌾</h1>
-      <span class="brand-badge">Stardew RPG</span>
-    </div>
-    <div class="header-right">
-      <button class="wood-btn" id="btn-inventory" title="Mở túi đồ (Phím E)">🎒 TÚI ĐỒ (E)</button>
-      <button class="wood-btn" id="btn-crafting" title="Chế tạo vật phẩm">🔨 CHẾ TẠO</button>
-      <button class="wood-btn" id="btn-shop" title="Cửa hàng Cô Mai">🏪 CỬA HÀNG</button>
-      <button class="wood-btn" id="btn-quests" title="Nhật ký nhiệm vụ">📜 NHIỆM VỤ</button>
-      <button class="wood-btn" id="btn-sound" title="Bật/Tắt âm thanh">🔊 ÂM THANH</button>
-      <button class="wood-btn btn-sleep" id="btn-sleep" title="Đi ngủ để qua ngày mới">🛌 ĐI NGỦ</button>
-    </div>
-  </header>
+  <!-- 3D Canvas Viewport -->
+  <div id="game-container"></div>
 
-  <!-- Stardew Valley HUD Bar -->
-  <div class="hud-bar">
-    <div class="hud-left">
-      <div class="hud-item" id="hud-season">🌸 MÙA XUÂN</div>
-      <div class="hud-item" id="hud-day">NGÀY 1</div>
-      <div class="hud-item" id="hud-time">⏰ 07:00 AM</div>
-      <div class="hud-item" id="hud-weather">☀️ NẮNG ĐẸP</div>
-    </div>
-    <div class="hud-right">
-      <div class="hud-item" id="hud-energy" style="color:#228b22;">⚡ NĂNG LƯỢNG: 100/100</div>
-      <div class="gold-badge" id="hud-gold">🪙 500 G</div>
-    </div>
-  </div>
+  <!-- HUD Overlay -->
+  <div class="hud-overlay" id="hud">
+    <!-- Top Bar: Rank, Lap, Time -->
+    <div class="hud-top">
+      <div class="hud-card brand-card">
+        <div class="brand-title">HÀ NỘI MIDNIGHT RUSH</div>
+        <div class="brand-sub">🏍️ Bão Đêm Phố Cổ (Road Rash 3D)</div>
+      </div>
 
-  <!-- Main Game Stage Canvas -->
-  <div class="canvas-wrapper">
-    <div class="floating-toast" id="toast-msg">Chào mừng bạn đến với nông trại Hà Nội Chill!</div>
-    
-    <!-- Canvas Game Loop -->
-    <canvas id="gameCanvas" width="800" height="480"></canvas>
+      <div class="hud-card rank-card">
+        <div class="rank-label">VỊ TRÍ</div>
+        <div class="rank-value" id="hud-rank">1<span class="rank-sup">/6</span></div>
+      </div>
 
-    <!-- Dialogue Box Overlay (Hộp thoại tương tác NPC) -->
-    <div class="dialogue-overlay" id="dialogue-box" style="display:none;">
-      <div class="dialogue-avatar" id="dialogue-avatar">👴</div>
-      <div class="dialogue-content">
-        <div class="dialogue-name" id="dialogue-name">Bác Ba (Cây Bàng)</div>
-        <div class="dialogue-text" id="dialogue-text">Chào cháu! Đất Ba Vì màu mỡ lắm, chịu khó chăm sóc nhé!</div>
-        <div class="dialogue-actions">
-          <button class="wood-btn btn-sm" id="btn-dialogue-gift">🎁 TẶNG QUÀ</button>
-          <button class="wood-btn btn-sm" id="btn-dialogue-close">ĐÓNG (SPACE)</button>
+      <div class="hud-card distance-card">
+        <div class="rank-label">QUÃNG ĐƯỜNG</div>
+        <div class="distance-value" id="hud-distance">0 m</div>
+      </div>
+
+      <div class="hud-card knockouts-card">
+        <div class="rank-label">HẠ GỤC</div>
+        <div class="knockout-value" id="hud-ko">⚔️ 0</div>
+      </div>
+
+      <div class="hud-card top-buttons">
+        <button class="icon-btn" id="btn-sound" title="Bật/Tắt Âm thanh">🔊</button>
+        <button class="icon-btn" id="btn-camera" title="Đổi Góc nhìn Camera (Phím C)">📷</button>
+        <button class="icon-btn" id="btn-horn" title="Bấm còi Bim Bim (Phím H)">📢</button>
+      </div>
+    </div>
+
+    <!-- Center Notice (Knockout, Crash, Boost, Checkpoint) -->
+    <div class="center-banner" id="center-banner">
+      <div class="banner-title" id="banner-title">XUẤT PHÁT!</div>
+      <div class="banner-sub" id="banner-sub">ĐẠP ĐỐI THỦ ĐỂ GIÀNH NGÔI VÔ ĐỊCH!</div>
+    </div>
+
+    <!-- Bottom Left: Combat Controls Hint -->
+    <div class="hud-bottom-left">
+      <div class="combat-hint-box">
+        <div class="hint-title">⚔️ VŨ KHÍ & CỌ QUẸT:</div>
+        <div class="hint-row">
+          <span class="key-tag">J</span> hoặc <span class="key-tag">Chuột Trái</span>: <b>Đạp Trái</b>
+        </div>
+        <div class="hint-row">
+          <span class="key-tag">K</span> hoặc <span class="key-tag">Chuột Phải</span>: <b>Đạp Phải</b>
+        </div>
+        <div class="hint-row">
+          <span class="key-tag">SHIFT</span> / <span class="key-tag">W</span> x2: <b>Bốc Đầu / Nitro</b>
+        </div>
+        <div class="hint-row">
+          <span class="key-tag">H</span>: <b>Còi Xe Phố Cổ</b>
         </div>
       </div>
     </div>
 
-    <!-- Fishing Minigame Overlay (Minigame câu cá tương tác) -->
-    <div class="fishing-overlay" id="fishing-box" style="display:none;">
-      <div class="fishing-title">🎣 CÂU CÁ HỒ TÂY</div>
-      <div class="fishing-bar-wrapper">
-        <div class="fishing-track" id="fishing-track">
-          <div class="fishing-green-bar" id="fishing-green-bar"></div>
-          <div class="fishing-fish-icon" id="fishing-fish-icon">🐟</div>
+    <!-- Bottom Right: Speedometer & Nitro Gauge -->
+    <div class="hud-bottom-right">
+      <div class="speedo-cluster">
+        <div class="speed-number" id="hud-speed">0</div>
+        <div class="speed-unit">KM/H</div>
+        
+        <!-- Nitro Bar -->
+        <div class="nitro-bar-wrap">
+          <div class="nitro-label">NITRO BOOST</div>
+          <div class="nitro-track">
+            <div class="nitro-fill" id="nitro-fill" style="width: 100%;"></div>
+          </div>
         </div>
-        <div class="fishing-progress-bar">
-          <div class="fishing-progress-fill" id="fishing-progress-fill"></div>
-        </div>
-      </div>
-      <div class="fishing-hint">Giữ chuột trái hoặc phím SPACE để nâng thanh xanh bám theo cá!</div>
-    </div>
-  </div>
-
-  <!-- Bottom Stardew Hotbar (Toolbar 6 Slots) -->
-  <div class="toolbar-container">
-    <div class="stardew-hotbar" id="hotbar">
-      <div class="hotbar-slot active" data-slot="0" title="Cuốc đất (Hoe) - Phím 1">
-        <span class="hotbar-slot-key">1</span>
-        <canvas class="slot-icon" id="icon-slot-0" width="32" height="32"></canvas>
-        <span class="hotbar-slot-name">Cuốc</span>
-      </div>
-      <div class="hotbar-slot" data-slot="1" title="Bình tưới nước (Watering Can) - Phím 2">
-        <span class="hotbar-slot-key">2</span>
-        <canvas class="slot-icon" id="icon-slot-1" width="32" height="32"></canvas>
-        <span class="hotbar-slot-name">Tưới</span>
-      </div>
-      <div class="hotbar-slot" data-slot="2" title="Rìu đốn củi (Axe) - Phím 3">
-        <span class="hotbar-slot-key">3</span>
-        <canvas class="slot-icon" id="icon-slot-2" width="32" height="32"></canvas>
-        <span class="hotbar-slot-name">Rìu</span>
-      </div>
-      <div class="hotbar-slot" data-slot="3" title="Cần câu cá (Fishing Rod) - Phím 4">
-        <span class="hotbar-slot-key">4</span>
-        <canvas class="slot-icon" id="icon-slot-3" width="32" height="32"></canvas>
-        <span class="hotbar-slot-name">Cần câu</span>
-      </div>
-      <div class="hotbar-slot" data-slot="4" title="Hạt giống đang chọn - Phím 5">
-        <span class="hotbar-slot-key">5</span>
-        <canvas class="slot-icon" id="icon-slot-4" width="32" height="32"></canvas>
-        <span class="hotbar-slot-name" id="hotbar-seed-name">Hạt giống</span>
-      </div>
-      <div class="hotbar-slot" data-slot="5" title="Thu hoạch / Nhặt đồ - Phím 6">
-        <span class="hotbar-slot-key">6</span>
-        <canvas class="slot-icon" id="icon-slot-5" width="32" height="32"></canvas>
-        <span class="hotbar-slot-name">Thu hoạch</span>
       </div>
     </div>
   </div>
 
-  <!-- POPUP MODALS: SHOP / CRAFTING / INVENTORY / QUESTS -->
-  <div class="modal-backdrop" id="modal-backdrop" style="display:none;">
-    <div class="wood-modal" id="modal-container">
-      <div class="modal-header">
-        <h2 id="modal-title">Cửa Hàng Bách Hóa Cô Mai</h2>
-        <button class="modal-close-btn" id="btn-modal-close">&times;</button>
-      </div>
-      <div class="modal-body" id="modal-body">
-        <!-- Nội dung modal render động -->
+  <!-- Mobile On-Screen Touch Controls (Chơi trên điện thoại) -->
+  <div class="touch-controls" id="touch-controls">
+    <div class="touch-left">
+      <button class="touch-btn touch-steer" id="touch-left">◀</button>
+      <button class="touch-btn touch-steer" id="touch-right">▶</button>
+    </div>
+    <div class="touch-right-actions">
+      <button class="touch-btn touch-kick" id="touch-kick-l">🦵 ĐẠP TRÁI</button>
+      <button class="touch-btn touch-kick" id="touch-kick-r">ĐẠP PHẢI 🦵</button>
+      <div class="touch-drive-row">
+        <button class="touch-btn touch-brake" id="touch-brake">🛑 PHANH</button>
+        <button class="touch-btn touch-gas" id="touch-gas">⚡ GA</button>
       </div>
     </div>
   </div>
 
-  <!-- Instructions & Gamepad Guide -->
-  <div class="instructions-box">
-    <div class="instructions-grid">
-      <div>
-        <b>⌨️ BÀN PHÍM & CHUỘT:</b><br>
-        - Di chuyển: <span class="key-pill">W</span><span class="key-pill">A</span><span class="key-pill">S</span><span class="key-pill">D</span> hoặc Phím Mũi tên.<br>
-        - Hành động: <span class="key-pill">SPACE</span> hoặc <span class="key-pill">Click Chuột</span>.<br>
-        - Đổi công cụ: Phím <span class="key-pill">1</span> đến <span class="key-pill">6</span> hoặc Cuộn chuột.<br>
-        - Mở Túi đồ: Phím <span class="key-pill">E</span> | Thoát menu: <span class="key-pill">ESC</span>.
+  <!-- Game Over / Victory Modal -->
+  <div class="modal-overlay" id="end-modal" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-icon" id="end-icon">🏆</div>
+      <h2 id="end-title">VÔ ĐỊCH PHỐ ĐÊM!</h2>
+      <p id="end-desc">Bạn đã về đích đầu tiên và dẹp sạch mọi đối thủ trên đường phố Hà Nội!</p>
+      <div class="end-stats" id="end-stats">
+        <div>Hạng: <b id="stat-rank">#1</b></div>
+        <div>Hạ gục: <b id="stat-ko">5 xe</b></div>
+        <div>Tốc độ tối đa: <b id="stat-maxspeed">138 km/h</b></div>
       </div>
-      <div>
-        <b>🎮 TAY CẦM (GAMEPAD XBOX / PLAYSTATION):</b><br>
-        - Di chuyển: <span class="key-pill">D-Pad</span> hoặc <span class="key-pill">Analog Trái</span>.<br>
-        - Hành động: Nút <span class="key-pill">A</span> (hoặc ✖️ trên PS).<br>
-        - Đổi đồ nhanh: Nút <span class="key-pill">LB</span> / <span class="key-pill">RB</span> (L1 / R1).<br>
-        - Mở Túi đồ: Nút <span class="key-pill">Y</span> (hoặc 🔺 trên PS).<br>
-        - Đi ngủ qua ngày: Nút <span class="key-pill">Start</span> | Lưu game: <span class="key-pill">Select</span>.
-      </div>
+      <button class="btn-restart" id="btn-restart">ĐUA LẠI LƯỢT MỚI (SPACE)</button>
     </div>
   </div>
 
-  <script type="module" src="game.js?v=2.5"></script>
+  <script src="game.js?v=3.0"></script>
 </body>
 </html>
