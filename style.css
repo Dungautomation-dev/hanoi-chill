@@ -1,0 +1,298 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+
+:root {
+  --wood-dark: #4a2810;
+  --wood-mid: #7c441b;
+  --wood-light: #b36b2c;
+  --parchment: #fbe5b5;
+  --parchment-border: #9b5a2b;
+  --gold: #f9ba15;
+  --stardew-blue: #1c3d5a;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #141c24 radial-gradient(circle at center, #243447 0%, #10161d 100%);
+  color: #fbe5b5;
+  font-family: 'Press Start 2P', monospace, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 16px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Header Game Banner */
+.game-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 800px;
+  margin-bottom: 12px;
+}
+
+.brand-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-title h1 {
+  font-size: 20px;
+  color: #ffdf79;
+  text-shadow: 3px 3px 0px #4a2810, 4px 4px 0px #000;
+  letter-spacing: 1px;
+}
+
+.brand-badge {
+  font-size: 9px;
+  background: #e67e22;
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 2px solid #4a2810;
+  box-shadow: 2px 2px 0px #000;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Retro Stardew Wood Buttons */
+.wood-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  background: linear-gradient(180deg, #d48b47 0%, #9e531e 100%);
+  color: #fff8df;
+  border: 3px solid #3c1e0a;
+  box-shadow: inset 1px 1px 0px #f7b777, inset -1px -1px 0px #5c2f0d, 3px 3px 0px #000;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: transform 0.08s ease, filter 0.1s ease;
+}
+
+.wood-btn:hover {
+  filter: brightness(1.1);
+}
+
+.wood-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px #000;
+}
+
+.wood-btn.btn-sleep {
+  background: linear-gradient(180deg, #5394e3 0%, #2055a1 100%);
+  border-color: #0e274c;
+}
+
+/* Stardew Info HUD Box */
+.hud-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 800px;
+  background: #f1cf99;
+  border: 4px solid #572f10;
+  box-shadow: inset 2px 2px 0px #ffebb8, inset -2px -2px 0px #9f5b21, 0 6px 16px rgba(0,0,0,0.6);
+  border-radius: 6px;
+  padding: 8px 14px;
+  margin-bottom: 10px;
+  color: #3f2008;
+}
+
+.hud-left {
+  display: flex;
+  gap: 16px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.hud-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hud-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 11px;
+}
+
+.gold-badge {
+  background: #2b1706;
+  color: #ffdf40;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 2px solid #945318;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+/* Canvas Stage */
+.canvas-wrapper {
+  position: relative;
+  width: 800px;
+  height: 480px;
+  border: 6px solid #4a2810;
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8), inset 0 0 10px rgba(0,0,0,0.4);
+  overflow: hidden;
+  background: #6ab743;
+}
+
+#gameCanvas {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  width: 800px;
+  height: 480px;
+  cursor: crosshair;
+}
+
+/* Floating Notification */
+.floating-toast {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(28, 14, 5, 0.88);
+  border: 2px solid #e5993b;
+  color: #ffe6a3;
+  padding: 6px 16px;
+  font-size: 10px;
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+.floating-toast.show {
+  opacity: 1;
+}
+
+/* Stardew Bottom Toolbar */
+.toolbar-container {
+  display: flex;
+  justify-content: center;
+  width: 800px;
+  margin-top: 12px;
+}
+
+.stardew-hotbar {
+  display: flex;
+  gap: 6px;
+  background: #3e200a;
+  padding: 6px;
+  border: 4px solid #1a0c03;
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+}
+
+.hotbar-slot {
+  width: 48px;
+  height: 48px;
+  background: #baa07a;
+  border: 3px solid #6b441f;
+  border-radius: 4px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: inset 1px 1px 0px #dfc8a5, inset -1px -1px 0px #4d2b0e;
+  transition: transform 0.08s ease;
+}
+
+.hotbar-slot:hover {
+  filter: brightness(1.1);
+}
+
+.hotbar-slot.active {
+  background: #ffe39f;
+  border-color: #e62f17;
+  box-shadow: inset 0 0 0 2px #ffc107, 0 0 10px rgba(230, 47, 23, 0.8);
+  transform: translateY(-3px);
+}
+
+.hotbar-slot-key {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  font-size: 7px;
+  color: #3b1e06;
+  font-weight: bold;
+}
+
+.hotbar-slot-name {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  font-size: 6px;
+  color: #4a2810;
+  text-transform: uppercase;
+}
+
+.slot-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  pointer-events: none;
+}
+
+/* Instructions & Gamepad Guide */
+.instructions-box {
+  width: 800px;
+  background: #23160a;
+  border: 3px solid #5a300d;
+  color: #dfcaa7;
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-top: 14px;
+  font-size: 8px;
+  line-height: 1.8;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+}
+
+.instructions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.key-pill {
+  display: inline-block;
+  background: #543318;
+  color: #ffdf79;
+  border: 1px solid #7c441b;
+  border-radius: 3px;
+  padding: 2px 5px;
+  margin: 0 2px;
+  font-size: 8px;
+}
+
+.gamepad-connected-tag {
+  color: #4ade80;
+  font-weight: bold;
+}
