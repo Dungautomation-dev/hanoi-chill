@@ -1,0 +1,20 @@
+# Node / Temporary
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Build / Output
+dist/
+build/
+
+# Operating System
+.DS_Store
+Thumbs.db
+*.tmp
+*.bak
+
+# IDE & Editor
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
