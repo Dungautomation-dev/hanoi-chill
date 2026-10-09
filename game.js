@@ -405,11 +405,11 @@
     const legMat = new THREE.MeshStandardMaterial({ color: 0x1e293b });
 
     const leftLeg = new THREE.Mesh(legGeo, legMat);
-    leftLeg.position.set(-0.34, 1.15, -0.15);
+    leftLeg.position.set(0.34, 1.15, -0.15); // Bên trái (+X)
     riderGroup.add(leftLeg);
 
     const rightLeg = new THREE.Mesh(legGeo, legMat);
-    rightLeg.position.set(0.34, 1.15, -0.15);
+    rightLeg.position.set(-0.34, 1.15, -0.15); // Bên phải (-X)
     riderGroup.add(rightLeg);
 
     bikeGroup.add(riderGroup);
@@ -805,16 +805,17 @@
     player.kickTimer = 0.4; // Thời gian vung chân
 
     // Animation đạp lực lưỡng: Thân người nghiêng ngược chiều, chân vung thẳng ra ngoài
+    // Nhắc lại: +X là BÊN TRÁI màn hình, -X là BÊN PHẢI màn hình
     if (side === 'left') {
-      playerLeftLeg.position.set(-1.15, 1.35, 0.2);
-      playerLeftLeg.rotation.z = 1.35; // Vung chân trái ngang tầm
+      playerLeftLeg.position.set(1.15, 1.35, 0.2); // Vung chân trái sang bên trái (+X)
+      playerLeftLeg.rotation.z = -1.35;
       playerLeftLeg.rotation.x = -0.4;
-      playerTorso.rotation.z = -0.3; // Thân người nghiêng sang phải để lấy thế
+      playerTorso.rotation.z = 0.3; // Thân người nghiêng sang phải để lấy thế
     } else {
-      playerRightLeg.position.set(1.15, 1.35, 0.2);
-      playerRightLeg.rotation.z = -1.35;
+      playerRightLeg.position.set(-1.15, 1.35, 0.2); // Vung chân phải sang bên phải (-X)
+      playerRightLeg.rotation.z = 1.35;
       playerRightLeg.rotation.x = -0.4;
-      playerTorso.rotation.z = 0.3;
+      playerTorso.rotation.z = -0.3;
     }
 
     // Kiểm tra va chạm với đối thủ trong tầm đạp (Khoảng cách < 3.8m)
@@ -825,9 +826,10 @@
       const dx = op.x - player.x;
 
       if (dz < 3.2) {
-        if (side === 'left' && dx < -0.3 && dx > -4.0) {
+        // Đối thủ bên trái có dx > 0 (+X), đối thủ bên phải có dx < 0 (-X)
+        if (side === 'left' && dx > 0.3 && dx < 4.0) {
           hitOpponent = op;
-        } else if (side === 'right' && dx > 0.3 && dx < 4.0) {
+        } else if (side === 'right' && dx < -0.3 && dx > -4.0) {
           hitOpponent = op;
         }
       }
@@ -860,10 +862,10 @@
       player.kickTimer -= delta;
       if (player.kickTimer <= 0) {
         player.kickSide = null;
-        // Thu chân và thân về vị trí ngồi bình thường
-        playerLeftLeg.position.set(-0.34, 1.15, -0.15);
+        // Thu chân và thân về vị trí ngồi bình thường (+X là trái, -X là phải)
+        playerLeftLeg.position.set(0.34, 1.15, -0.15);
         playerLeftLeg.rotation.set(0, 0, 0);
-        playerRightLeg.position.set(0.34, 1.15, -0.15);
+        playerRightLeg.position.set(-0.34, 1.15, -0.15);
         playerRightLeg.rotation.set(0, 0, 0);
         playerTorso.rotation.z = 0;
       }
@@ -897,18 +899,19 @@
       if (exhaustFlame) exhaustFlame.material.opacity = 0;
     }
 
-    // 3. ĐIỀU KHIỂN BẺ LÁI CHUẨN XÁC 100%:
-    // A (Left) -> Di chuyển sang TRÁI màn hình (-X) & Nghiêng xe sang TRÁI
-    // D (Right) -> Di chuyển sang PHẢI màn hình (+X) & Nghiêng xe sang PHẢI
+    // 3. ĐIỀU KHIỂN BẺ LÁI CHUẨN XÁC THEO TAY NGƯỜI CHƠI:
+    // Vì Camera đặt sau xe nhìn theo hướng +Z:
+    // +X là BÊN TRÁI màn hình (Screen Left / Tay trái người chơi)
+    // -X là BÊN PHẢI màn hình (Screen Right / Tay phải người chơi)
     const steerSpeed = player.handling * (player.speed / player.maxSpeed);
     let targetLean = 0;
 
     if (input.left) {
-      player.x -= steerSpeed * delta; // Trừ X = Sang Trái
-      targetLean = 0.45;              // Nghiêng xe ôm cua
+      player.x += steerSpeed * delta; // Phím A / Mũi tên Trái: Lách sang TRÁI (+X)
+      targetLean = -0.45;             // Nghiêng thân xe sang BÊN TRÁI màn hình
     } else if (input.right) {
-      player.x += steerSpeed * delta; // Cộng X = Sang Phải
-      targetLean = -0.45;
+      player.x -= steerSpeed * delta; // Phím D / Mũi tên Phải: Lách sang PHẢI (-X)
+      targetLean = 0.45;              // Nghiêng thân xe sang BÊN PHẢI màn hình
     }
 
     player.x = Math.max(-ROAD_WIDTH / 2 + 1.2, Math.min(ROAD_WIDTH / 2 - 1.2, player.x));
@@ -921,9 +924,9 @@
 
     // Cập nhật vị trí và góc xoay Mesh
     playerBikeMesh.position.set(player.x, 0, player.z);
-    // Lưu ý: rotation.z nghiêng thân xe, rotation.y đánh lái bánh trước
+    // rotation.z nghiêng xe sang trái/phải, rotation.y bẻ hướng đầu xe
     playerBikeMesh.rotation.z = player.leanAngle;
-    playerBikeMesh.rotation.y = player.leanAngle * 0.35;
+    playerBikeMesh.rotation.y = -player.leanAngle * 0.35;
 
     // Lăn bánh xe
     const wheelRot = moveZ * 2.2;
