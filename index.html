@@ -4,7 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Hà Nội Midnight Rush - Bão Đêm Phố Cổ 3D 🏍️💨</title>
-  <link rel="stylesheet" href="style.css?v=3.7">
+  <meta name="description" content="Tựa game đua xe máy đường phố 3D phong cách Road Rash huyền thoại kết hợp với khung cảnh đêm phố cổ Hà Nội, hồ Gươm, Tháp Rùa và Ô Quan Chưởng.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800;900&family=Rajdhani:wght@600;700;800&family=Be+Vietnam+Pro:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=4.0">
   <!-- Three.js 3D Engine -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
@@ -13,6 +17,12 @@
   <!-- 3D Canvas Viewport -->
   <div id="game-container"></div>
 
+  <!-- FLOATING EXIT PHOTO / ZEN MODE BUTTON -->
+  <button id="btn-exit-photo" class="exit-photo-btn" title="Hiện lại giao diện điều khiển (Phím F2 hoặc Click)">
+    <span class="btn-emoji">👁️</span>
+    <span class="btn-txt">Hiện Giao Diện (F2)</span>
+  </button>
+
   <!-- HUD Overlay -->
   <div class="hud-overlay" id="hud">
     <!-- Top Bar: Rank, Distance, Gold, Garage, Buttons -->
@@ -20,6 +30,7 @@
       <div class="hud-card brand-card">
         <div class="brand-title">HÀ NỘI MIDNIGHT RUSH</div>
         <div class="brand-sub">🏍️ Bão Đêm Phố Cổ (Road Rash 3D)</div>
+        <div class="brand-author-tag">Tác giả: <b>Dũng Automation</b> • <i>"Chia sẻ để thành công"</i></div>
       </div>
 
       <div class="hud-card rank-card">
@@ -39,9 +50,30 @@
 
       <div class="hud-card top-buttons">
         <button class="action-btn garage-btn" id="btn-garage">🛠️ GARAGE XE</button>
-        <button class="action-btn help-btn" id="btn-toggle-help" title="Bật/Tắt hướng dẫn phím tắt">⌨️ PHÍM TẮT</button>
-        <button class="icon-btn" id="btn-sound" title="Bật/Tắt Âm thanh">🔊</button>
-        <button class="icon-btn" id="btn-horn" title="Còi Bim Bim (Phím H)">📢</button>
+        <button class="action-btn photo-btn" id="btn-photo" title="Chế độ Ngắm Cảnh / Chụp Ảnh (F2)">📷 ẢNH</button>
+        <button class="action-btn help-btn" id="btn-toggle-help" title="Bật/Tắt hướng dẫn phím tắt (F1)">⌨️ PHÍM TẮT</button>
+        <button class="icon-btn" id="btn-music" title="Bật/Tắt Nhạc Nền Synthwave Phố Đêm">🎵</button>
+        <button class="icon-btn" id="btn-sound" title="Bật/Tắt Âm Thanh Pô Xe">🔊</button>
+        <button class="icon-btn" id="btn-horn" title="Còi Bim Bim Phố Cổ (Phím H)">📢</button>
+      </div>
+    </div>
+
+    <!-- Live Race Progress Tracker (Minimap Bar) -->
+    <div class="race-tracker-wrap" id="race-tracker">
+      <div class="tracker-header">
+        <span class="track-label">TIẾN ĐỘ CHẶNG ĐUA (2.5 KM)</span>
+        <span class="track-dist" id="hud-dist-text">0 / 2500m</span>
+      </div>
+      <div class="tracker-bar">
+        <div class="tracker-fill" id="tracker-fill" style="width: 0%;"></div>
+        <!-- Racer Pins (Player & Bots) -->
+        <div class="racer-pin pin-player" id="pin-player" title="Bạn (Hạng 1)">🏍️</div>
+        <div class="racer-pin pin-bot" id="pin-bot-0" title="Hùng Tổ Lái">🔵</div>
+        <div class="racer-pin pin-bot" id="pin-bot-1" title="Tuấn Wave Chiến">🟢</div>
+        <div class="racer-pin pin-bot" id="pin-bot-2" title="Lan Bão Đêm">🟣</div>
+        <div class="racer-pin pin-bot" id="pin-bot-3" title="Dũng Pô Nổ">🟡</div>
+        <div class="racer-pin pin-bot" id="pin-bot-4" title="Sơn Liều Mạng">🔴</div>
+        <div class="finish-flag-pin">🏁 ĐÍCH</div>
       </div>
     </div>
 
@@ -56,7 +88,7 @@
       <div class="hud-bottom-left" id="controls-hint-panel">
         <div class="combat-hint-box">
           <div class="hint-header">
-            <span class="hint-title">⚔️ HƯỚNG DẪN ĐIỀU KHIỂN</span>
+            <span class="hint-title">⚔️ HƯỚNG DẪN CHIẾN ĐẤU & ĐUA XE</span>
             <button class="hint-close-btn" id="btn-close-hint" title="Ẩn bảng hướng dẫn">&times;</button>
           </div>
           <div class="hint-content">
@@ -67,16 +99,16 @@
               <span class="key-tag">W</span> / <span class="key-tag">S</span> hoặc <span class="key-tag">▲</span>/<span class="key-tag">▼</span>: <b>Tăng Tốc / Phanh</b>
             </div>
             <div class="hint-row">
-              <span class="key-tag">J</span> hoặc <span class="key-mouse">Chuột Trái</span>: <b>Đạp Trái</b>
+              <span class="key-tag">J</span> hoặc <span class="key-mouse">Chuột Trái</span>: <b>Đạp Trái (+150G)</b>
             </div>
             <div class="hint-row">
-              <span class="key-tag">K</span> hoặc <span class="key-mouse">Chuột Phải</span>: <b>Đạp Phải</b>
+              <span class="key-tag">K</span> hoặc <span class="key-mouse">Chuột Phải</span>: <b>Đạp Phải (+150G)</b>
             </div>
             <div class="hint-row">
               <span class="key-tag">SHIFT</span> / <span class="key-tag">SPACE</span>: <b>Xịt Nitro Tăng Tốc</b>
             </div>
             <div class="hint-row">
-              <span class="key-tag">H</span>: <b>Bấm Còi Xe Phố Cổ</b>
+              <span class="key-tag">H</span>: <b>Bấm Còi Bim Bim</b> • <span class="key-tag">F2</span>: <b>Chụp Ảnh</b>
             </div>
           </div>
           <div class="hint-footer">⏱️ Tự ẩn sau 5 giây • Bấm <b>[⌨️ PHÍM TẮT]</b> để xem lại bất kỳ lúc nào</div>
@@ -86,8 +118,10 @@
       <!-- Bottom Right: Speedometer & Nitro Gauge -->
       <div class="hud-bottom-right">
         <div class="speedo-cluster">
-          <div class="speed-number" id="hud-speed">0</div>
-          <div class="speed-unit">KM/H</div>
+          <div class="speedo-dial">
+            <div class="speed-number" id="hud-speed">0</div>
+            <div class="speed-unit">KM/H</div>
+          </div>
           
           <!-- Nitro Bar -->
           <div class="nitro-bar-wrap">
@@ -128,7 +162,8 @@
         <button class="modal-close-btn" id="btn-close-garage">&times;</button>
       </div>
       <div class="garage-gold-bar">
-        TÚI TIỀN CỦA BẠN: <b id="garage-gold-text">🪙 500 G</b>
+        <span>TÚI TIỀN CỦA BẠN:</span>
+        <b id="garage-gold-text">🪙 500 G</b>
       </div>
 
       <!-- Chọn Xe (Bike Selector) -->
@@ -206,6 +241,6 @@
     </div>
   </div>
 
-  <script src="game.js?v=3.7"></script>
+  <script src="game.js?v=4.0"></script>
 </body>
 </html>

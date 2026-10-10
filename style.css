@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Rajdhani:wght@600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800;900&family=Rajdhani:wght@600;700;800&family=Be+Vietnam+Pro:wght@400;600;700;800&display=swap');
 
 :root {
   --neon-cyan: #00f3ff;
@@ -6,8 +6,10 @@
   --neon-red: #ff0055;
   --neon-orange: #ff6600;
   --neon-green: #10b981;
-  --dark-bg: rgba(10, 14, 26, 0.88);
-  --border-glow: rgba(0, 243, 255, 0.4);
+  --hanoi-gold: #fbbf24;
+  --dark-bg: rgba(10, 14, 26, 0.92);
+  --border-glow: rgba(0, 243, 255, 0.45);
+  --border-gold: rgba(251, 191, 36, 0.4);
 }
 
 * {
@@ -34,6 +36,40 @@ body, html {
   width: 100%;
   height: 100%;
   z-index: 1;
+  outline: none;
+}
+
+/* FLOATING EXIT PHOTO / ZEN MODE BUTTON */
+.exit-photo-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 999;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  background: var(--dark-bg);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--neon-cyan);
+  color: var(--neon-cyan);
+  padding: 10px 20px;
+  border-radius: 30px;
+  cursor: pointer;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7), 0 0 16px rgba(0, 243, 255, 0.35);
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.exit-photo-btn:hover {
+  background: var(--neon-cyan);
+  color: #030611;
+  transform: scale(1.05);
+}
+
+body.photo-mode .exit-photo-btn {
+  display: flex;
 }
 
 /* HUD Overlay */
@@ -48,7 +84,14 @@ body, html {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 18px 24px;
+  padding: 16px 22px;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+body.photo-mode .hud-overlay {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.98);
 }
 
 /* Top Bar Cards */
@@ -61,10 +104,10 @@ body, html {
 
 .hud-card {
   background: var(--dark-bg);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(14px);
   border: 1px solid var(--border-glow);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(0, 243, 255, 0.08);
-  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.65), inset 0 0 15px rgba(0, 243, 255, 0.08);
+  border-radius: 10px;
   padding: 8px 14px;
   display: flex;
   flex-direction: column;
@@ -77,7 +120,7 @@ body, html {
 
 .brand-title {
   font-family: 'Orbitron', sans-serif;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 900;
   letter-spacing: 1.2px;
   color: #fff;
@@ -88,6 +131,17 @@ body, html {
   font-size: 11px;
   color: #94a3b8;
   letter-spacing: 0.5px;
+}
+
+.brand-author-tag {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 10px;
+  color: var(--hanoi-gold);
+  margin-top: 2px;
+}
+
+.brand-author-tag b {
+  color: #fff;
 }
 
 .rank-card {
@@ -147,7 +201,7 @@ body, html {
 
 .top-buttons {
   flex-direction: row;
-  gap: 8px;
+  gap: 7px;
   pointer-events: auto;
 }
 
@@ -158,55 +212,157 @@ body, html {
   font-family: 'Orbitron', sans-serif;
   font-size: 11px;
   font-weight: 800;
-  padding: 8px 14px;
-  border-radius: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
   cursor: pointer;
-  letter-spacing: 0.5px;
-  box-shadow: 0 0 12px rgba(0, 243, 255, 0.4);
   transition: all 0.15s ease;
+  box-shadow: 0 0 12px rgba(0, 243, 255, 0.3);
 }
 
 .action-btn:hover {
-  filter: brightness(1.2);
+  background: var(--neon-cyan);
+  color: #030611;
   transform: translateY(-2px);
-  box-shadow: 0 0 18px rgba(0, 243, 255, 0.7);
+  box-shadow: 0 0 18px rgba(0, 243, 255, 0.6);
 }
 
-.garage-btn {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  border-color: #fbbf24;
-  box-shadow: 0 0 12px rgba(245, 158, 11, 0.5);
+.photo-btn {
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  border-color: #a78bfa;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.3);
+}
+
+.photo-btn:hover {
+  background: #a78bfa;
+  color: #030611;
+  box-shadow: 0 0 18px rgba(167, 139, 250, 0.6);
+}
+
+.help-btn {
+  background: linear-gradient(135deg, #334155, #1e293b);
+  border-color: #64748b;
+  box-shadow: none;
+}
+
+.help-btn:hover {
+  background: #64748b;
+  color: #fff;
 }
 
 .icon-btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--dark-bg);
+  border: 1px solid #475569;
   color: #fff;
-  font-size: 15px;
   width: 36px;
   height: 36px;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 16px;
   transition: all 0.15s ease;
 }
 
 .icon-btn:hover {
-  background: var(--neon-cyan);
-  color: #000;
-  box-shadow: 0 0 12px var(--neon-cyan);
+  border-color: var(--neon-cyan);
+  transform: scale(1.08);
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.4);
 }
 
-/* Center Notice Banner */
+/* LIVE RACE PROGRESS TRACKER */
+.race-tracker-wrap {
+  width: 100%;
+  max-width: 820px;
+  margin: 10px auto 0 auto;
+  pointer-events: auto;
+  background: var(--dark-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 243, 255, 0.3);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+  border-radius: 10px;
+  padding: 8px 14px;
+}
+
+.tracker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.track-label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--neon-cyan);
+  letter-spacing: 0.8px;
+}
+
+.track-dist {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
+.tracker-bar {
+  position: relative;
+  height: 12px;
+  background: #1e293b;
+  border-radius: 6px;
+  overflow: visible;
+  border: 1px solid #334155;
+}
+
+.tracker-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0284c7, #00f3ff);
+  border-radius: 6px;
+  transition: width 0.1s linear;
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+}
+
+.racer-pin {
+  position: absolute;
+  top: -9px;
+  font-size: 15px;
+  transform: translateX(-50%);
+  transition: left 0.1s linear;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+  cursor: default;
+}
+
+.pin-player {
+  font-size: 18px;
+  top: -12px;
+  z-index: 5;
+  filter: drop-shadow(0 0 6px #00f3ff);
+}
+
+.finish-flag-pin {
+  position: absolute;
+  right: 0;
+  top: -7px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--neon-yellow);
+  background: rgba(15, 23, 42, 0.85);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+/* Center Banner */
 .center-banner {
   align-self: center;
   text-align: center;
-  background: linear-gradient(90deg, transparent, rgba(10, 14, 26, 0.92), transparent);
-  padding: 12px 50px;
-  border-top: 2px solid var(--neon-cyan);
-  border-bottom: 2px solid var(--neon-cyan);
+  background: rgba(3, 6, 17, 0.9);
+  backdrop-filter: blur(16px);
+  border: 2px solid var(--neon-cyan);
+  box-shadow: 0 0 35px rgba(0, 243, 255, 0.45);
+  border-radius: 12px;
+  padding: 14px 28px;
   opacity: 0;
   transform: scale(0.9);
   transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -219,56 +375,48 @@ body, html {
 
 .banner-title {
   font-family: 'Orbitron', sans-serif;
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 900;
   color: var(--neon-yellow);
-  text-shadow: 0 0 20px var(--neon-yellow), 0 0 40px var(--neon-orange);
-  letter-spacing: 2px;
+  letter-spacing: 1px;
+  text-shadow: 0 0 14px rgba(255, 234, 0, 0.7);
 }
 
 .banner-sub {
-  font-size: 12px;
-  color: #cbd5e1;
-  letter-spacing: 1px;
+  font-size: 13px;
+  color: #e2e8f0;
+  font-weight: 700;
+  margin-top: 3px;
 }
 
-/* Bottom HUD Layout */
+/* Bottom HUD */
 .hud-bottom {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   width: 100%;
-  pointer-events: none;
-  gap: 20px;
 }
 
-/* Bottom Left Hints */
 .hud-bottom-left {
-  display: flex;
-  flex-direction: column;
-  max-width: 360px;
-  width: auto;
   pointer-events: auto;
-  transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-  transform-origin: bottom left;
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .hud-bottom-left.hidden {
   opacity: 0;
   pointer-events: none;
-  transform: translateY(20px) scale(0.95);
+  transform: translateY(20px);
 }
 
 .combat-hint-box {
-  background: rgba(10, 14, 26, 0.94);
+  background: var(--dark-bg);
   backdrop-filter: blur(14px);
-  border: 1px solid rgba(0, 243, 255, 0.35);
+  border: 1px solid var(--border-glow);
   border-left: 4px solid var(--neon-cyan);
   border-radius: 10px;
   padding: 12px 16px;
-  font-size: 13px;
-  line-height: 1.6;
-  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.8), 0 0 15px rgba(0, 243, 255, 0.15);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
+  max-width: 360px;
 }
 
 .hint-header {
@@ -276,17 +424,14 @@ body, html {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 8px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .hint-title {
-  color: var(--neon-yellow);
   font-family: 'Orbitron', sans-serif;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
+  color: var(--neon-cyan);
   letter-spacing: 0.8px;
-  text-shadow: 0 0 8px rgba(255, 234, 0, 0.4);
 }
 
 .hint-close-btn {
@@ -295,130 +440,110 @@ body, html {
   color: #94a3b8;
   font-size: 18px;
   cursor: pointer;
-  padding: 0 4px;
   line-height: 1;
-  transition: color 0.15s, transform 0.15s;
 }
 
 .hint-close-btn:hover {
   color: #fff;
-  transform: scale(1.2);
 }
 
 .hint-content {
   display: flex;
   flex-direction: column;
   gap: 5px;
+  font-size: 12.5px;
+  color: #cbd5e1;
 }
 
 .hint-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: #cbd5e1;
-  font-size: 12px;
-}
-
-.hint-row b {
-  color: #f8fafc;
-  font-weight: 600;
+  gap: 6px;
 }
 
 .key-tag {
   background: #1e293b;
-  color: var(--neon-cyan);
-  border: 1px solid #00f3ff;
-  padding: 2px 7px;
-  border-radius: 5px;
-  font-family: 'Orbitron', monospace;
-  font-size: 11px;
+  border: 1px solid #475569;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px;
   font-weight: 800;
-  box-shadow: 0 0 6px rgba(0, 243, 255, 0.25);
-  display: inline-block;
-  line-height: 1.2;
+  color: var(--neon-yellow);
 }
 
 .key-mouse {
-  background: #334155;
-  color: #facc15;
-  border: 1px solid #facc15;
-  padding: 2px 7px;
-  border-radius: 5px;
-  font-family: 'Orbitron', monospace;
+  background: #0284c7;
+  border-radius: 4px;
+  padding: 1px 6px;
   font-size: 10px;
-  font-weight: 700;
-  display: inline-block;
-  line-height: 1.2;
+  font-weight: 800;
+  color: #fff;
 }
 
 .hint-footer {
-  margin-top: 8px;
-  padding-top: 6px;
-  border-top: 1px dashed rgba(255, 255, 255, 0.12);
   font-size: 10px;
-  color: #94a3b8;
-  text-align: center;
+  color: #64748b;
+  margin-top: 8px;
+  border-top: 1px solid #334155;
+  padding-top: 6px;
 }
 
-.hint-footer b {
-  color: var(--neon-cyan);
-}
-
-.help-btn {
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  border-color: #818cf8;
-  box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
-}
-
-/* Bottom Right Speedometer */
+/* Speedometer Cluster */
 .hud-bottom-right {
-  align-self: flex-end;
+  pointer-events: auto;
 }
 
 .speedo-cluster {
   background: var(--dark-bg);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(14px);
   border: 1px solid var(--border-glow);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(0, 243, 255, 0.1);
-  border-radius: 12px;
-  padding: 14px 22px;
-  text-align: right;
-  min-width: 200px;
+  border-radius: 14px;
+  padding: 14px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7), inset 0 0 20px rgba(0, 243, 255, 0.1);
+}
+
+.speedo-dial {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
 }
 
 .speed-number {
   font-family: 'Orbitron', sans-serif;
-  font-size: 58px;
+  font-size: 48px;
   font-weight: 900;
-  line-height: 0.9;
   color: #fff;
-  text-shadow: 0 0 20px var(--neon-cyan);
+  line-height: 1;
+  text-shadow: 0 0 15px rgba(255, 255, 255, 0.7);
 }
 
 .speed-unit {
   font-family: 'Orbitron', sans-serif;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 800;
   color: var(--neon-cyan);
-  letter-spacing: 2px;
-  margin-bottom: 6px;
 }
 
 .nitro-bar-wrap {
   width: 100%;
+  min-width: 180px;
+  margin-top: 10px;
 }
 
 .nitro-label {
   font-size: 9px;
+  font-weight: 800;
   color: #94a3b8;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
   margin-bottom: 4px;
-  text-align: left;
 }
 
 .nitro-track {
-  width: 100%;
-  height: 9px;
+  height: 8px;
   background: #1e293b;
   border-radius: 4px;
   overflow: hidden;
@@ -427,76 +552,58 @@ body, html {
 
 .nitro-fill {
   height: 100%;
-  background: linear-gradient(90deg, #f59e0b, #ef4444);
-  box-shadow: 0 0 10px #ef4444;
+  background: linear-gradient(90deg, #ff0055, #ff6600, #ffea00);
   border-radius: 4px;
-  transition: width 0.05s linear;
+  transition: width 0.1s linear;
+  box-shadow: 0 0 10px rgba(255, 102, 0, 0.6);
 }
 
-/* Touch Controls for Mobile */
+/* Mobile Touch Controls */
 .touch-controls {
   position: absolute;
-  bottom: 14px;
+  bottom: 16px;
   left: 0;
   width: 100%;
-  padding: 0 16px;
+  padding: 0 18px;
   display: none;
   justify-content: space-between;
-  z-index: 20;
+  align-items: flex-end;
+  z-index: 15;
   pointer-events: none;
 }
 
-@media (max-width: 850px) {
+@media (pointer: coarse), (max-width: 900px) {
   .touch-controls {
     display: flex;
   }
-  .hud-bottom-left {
-    display: none;
-  }
-  .hud-overlay {
-    padding: 10px 12px;
-  }
-  .speed-number {
-    font-size: 40px;
-  }
+}
+
+.touch-left, .touch-right-actions {
+  display: flex;
+  gap: 10px;
+  pointer-events: auto;
 }
 
 .touch-btn {
-  pointer-events: auto;
-  background: rgba(15, 23, 42, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: var(--dark-bg);
+  backdrop-filter: blur(10px);
+  border: 2px solid var(--border-glow);
   color: #fff;
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(6px);
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 800;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
   touch-action: manipulation;
 }
 
-.touch-btn:active {
-  background: var(--neon-cyan);
-  color: #000;
-}
-
-.touch-left {
-  display: flex;
-  gap: 10px;
-  align-items: flex-end;
-}
-
 .touch-steer {
-  width: 62px;
-  height: 62px;
-  font-size: 16px;
+  width: 68px;
+  height: 56px;
+  font-size: 13px;
 }
 
 .touch-right-actions {
-  display: flex;
   flex-direction: column;
   gap: 8px;
   align-items: flex-end;
@@ -508,30 +615,30 @@ body, html {
 }
 
 .touch-kick {
-  padding: 8px 12px;
+  padding: 8px 14px;
   font-size: 12px;
-  background: rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.6);
   border-color: #ef4444;
 }
 
 .touch-nitro {
-  width: 58px;
-  height: 50px;
-  background: rgba(245, 158, 11, 0.6);
+  width: 60px;
+  height: 52px;
+  background: rgba(245, 158, 11, 0.65);
   border-color: #f59e0b;
 }
 
 .touch-brake {
-  width: 58px;
-  height: 50px;
-  background: rgba(220, 38, 38, 0.6);
+  width: 60px;
+  height: 52px;
+  background: rgba(220, 38, 38, 0.65);
   border-color: #dc2626;
 }
 
 .touch-gas {
-  width: 64px;
-  height: 50px;
-  background: rgba(16, 185, 129, 0.7);
+  width: 68px;
+  height: 52px;
+  background: rgba(16, 185, 129, 0.75);
   border-color: #10b981;
 }
 
@@ -539,21 +646,27 @@ body, html {
 .modal-backdrop {
   position: fixed;
   top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(3, 6, 17, 0.88);
-  backdrop-filter: blur(10px);
+  background: rgba(3, 6, 17, 0.9);
+  backdrop-filter: blur(14px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* Garage Card */
 .garage-card {
   background: #0f172a;
   border: 2px solid var(--neon-yellow);
-  box-shadow: 0 0 35px rgba(255, 234, 0, 0.3), inset 0 0 25px rgba(255, 234, 0, 0.08);
-  border-radius: 12px;
-  width: 640px;
+  box-shadow: 0 0 40px rgba(255, 234, 0, 0.35), inset 0 0 25px rgba(255, 234, 0, 0.08);
+  border-radius: 14px;
+  width: 680px;
   max-width: 95%;
   max-height: 88vh;
   overflow-y: auto;
@@ -573,7 +686,7 @@ body, html {
 
 .garage-header h2 {
   font-family: 'Orbitron', sans-serif;
-  font-size: 18px;
+  font-size: 19px;
   color: var(--neon-yellow);
   letter-spacing: 1px;
 }
@@ -583,17 +696,17 @@ body, html {
   border: none;
   color: #fff;
   font-size: 20px;
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   cursor: pointer;
 }
 
 .garage-gold-bar {
   background: #1e293b;
   border: 1px solid #475569;
-  border-radius: 6px;
-  padding: 8px 14px;
+  border-radius: 8px;
+  padding: 10px 16px;
   font-size: 13px;
   color: #94a3b8;
   display: flex;
@@ -604,7 +717,7 @@ body, html {
 .garage-gold-bar b {
   font-family: 'Orbitron', sans-serif;
   color: #ffdf40;
-  font-size: 16px;
+  font-size: 17px;
 }
 
 /* Bike Shelf */
@@ -617,24 +730,29 @@ body, html {
 .bike-card {
   background: #1e293b;
   border: 2px solid #334155;
-  border-radius: 8px;
-  padding: 10px;
+  border-radius: 10px;
+  padding: 12px 10px;
   text-align: center;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.18s ease;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
 }
 
+.bike-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--neon-cyan);
+}
+
 .bike-card.active {
   border-color: var(--neon-cyan);
   background: #0e2d4d;
-  box-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
+  box-shadow: 0 0 18px rgba(0, 243, 255, 0.45);
 }
 
 .bike-card-icon {
-  font-size: 28px;
+  font-size: 32px;
   margin-bottom: 4px;
 }
 
@@ -647,17 +765,19 @@ body, html {
 }
 
 .bike-card-price {
-  font-size: 10px;
+  font-size: 11px;
   color: #facc15;
+  font-weight: 700;
 }
 
 .bike-card-status {
   font-size: 9px;
-  padding: 2px 6px;
+  padding: 3px 6px;
   border-radius: 4px;
   margin-top: 6px;
   text-transform: uppercase;
-  font-weight: bold;
+  font-weight: 800;
+  letter-spacing: 0.5px;
 }
 
 .status-using {
@@ -682,7 +802,7 @@ body, html {
   gap: 10px;
   background: #111e38;
   border: 1px solid #1e293b;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 14px;
 }
 
@@ -691,7 +811,7 @@ body, html {
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid #1e293b;
-  padding-bottom: 8px;
+  padding-bottom: 10px;
 }
 
 .upgrade-row:last-child {
@@ -707,9 +827,8 @@ body, html {
 
 .up-title {
   font-size: 11px;
-  font-weight: 700;
-  color: #94a3b8;
-  letter-spacing: 0.5px;
+  font-weight: 800;
+  color: #cbd5e1;
 }
 
 .stat-pips {
@@ -718,7 +837,7 @@ body, html {
 }
 
 .pip {
-  width: 18px;
+  width: 14px;
   height: 8px;
   background: #334155;
   border-radius: 2px;
@@ -730,141 +849,146 @@ body, html {
 }
 
 .btn-up-stat {
-  background: linear-gradient(135deg, #0ea5e9, #0284c7);
-  border: 1px solid var(--neon-cyan);
-  color: #fff;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border: none;
+  color: #000;
   font-family: 'Orbitron', sans-serif;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
-  padding: 6px 12px;
-  border-radius: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .btn-up-stat:hover {
   filter: brightness(1.2);
-  box-shadow: 0 0 12px rgba(0, 243, 255, 0.6);
+  transform: scale(1.04);
 }
 
 .btn-up-stat.maxed {
-  background: #334155;
-  border-color: #475569;
+  background: #475569;
   color: #94a3b8;
-  cursor: default;
+  cursor: not-allowed;
+}
+
+.garage-footer {
+  display: flex;
+  justify-content: center;
+  margin-top: 6px;
 }
 
 .btn-resume-race {
-  background: linear-gradient(90deg, #10b981, #059669);
+  background: linear-gradient(135deg, #10b981, #059669);
+  border: none;
   color: #fff;
   font-family: 'Orbitron', sans-serif;
   font-size: 13px;
   font-weight: 900;
-  padding: 12px;
-  border: none;
-  border-radius: 6px;
+  padding: 12px 30px;
+  border-radius: 10px;
   cursor: pointer;
-  width: 100%;
-  letter-spacing: 1px;
-  box-shadow: 0 0 16px rgba(16, 185, 129, 0.5);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
 }
 
-.btn-resume-race:hover {
-  filter: brightness(1.2);
-  box-shadow: 0 0 24px rgba(16, 185, 129, 0.8);
-}
-
-/* End Race Card */
+/* End Race Modal */
 .end-race-card {
   background: #0f172a;
-  border: 2px solid var(--neon-cyan);
-  box-shadow: 0 0 40px rgba(0, 243, 255, 0.35);
-  border-radius: 12px;
-  padding: 30px 36px;
+  border: 2px solid var(--neon-yellow);
+  box-shadow: 0 0 45px rgba(255, 234, 0, 0.4);
+  border-radius: 16px;
+  padding: 28px;
   text-align: center;
   max-width: 440px;
   width: 90%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .end-icon {
-  font-size: 50px;
-  margin-bottom: 8px;
+  font-size: 48px;
 }
 
-.end-race-card h2 {
+#end-title {
   font-family: 'Orbitron', sans-serif;
   font-size: 22px;
-  font-weight: 900;
   color: var(--neon-yellow);
-  text-shadow: 0 0 15px var(--neon-yellow);
-  margin-bottom: 8px;
 }
 
-.end-race-card p {
+#end-desc {
   font-size: 13px;
   color: #94a3b8;
   line-height: 1.5;
-  margin-bottom: 18px;
 }
 
 .end-stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
-  margin-bottom: 22px;
+  margin: 8px 0;
 }
 
 .stat-box {
   background: #1e293b;
   border-radius: 8px;
   padding: 10px;
+  display: flex;
+  flex-direction: column;
 }
 
 .stat-lbl {
-  font-size: 9px;
+  font-size: 10px;
   color: #94a3b8;
-  display: block;
-  margin-bottom: 2px;
+  text-transform: uppercase;
 }
 
 .stat-val {
   font-family: 'Orbitron', sans-serif;
-  font-size: 16px;
-  color: var(--neon-cyan);
+  font-size: 18px;
+  color: #fff;
+  margin-top: 4px;
 }
 
 .gold-col {
-  color: #ffea00;
+  color: #ffdf40;
 }
 
 .end-actions {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  border: 1px solid #fbbf24;
-  color: #fff;
+.btn-primary, .btn-secondary {
   font-family: 'Orbitron', sans-serif;
   font-size: 12px;
   font-weight: 800;
   padding: 12px;
-  border-radius: 6px;
+  border-radius: 8px;
+  border: none;
   cursor: pointer;
-  letter-spacing: 0.5px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #0284c7, #00f3ff);
+  color: #030611;
 }
 
 .btn-secondary {
-  background: linear-gradient(90deg, #00f3ff, #0088ff);
-  color: #030611;
-  font-family: 'Orbitron', sans-serif;
-  font-size: 13px;
-  font-weight: 900;
-  padding: 12px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  letter-spacing: 1px;
+  background: #334155;
+  color: #fff;
+}
+
+@media (max-width: 900px) {
+  .hud-top {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .hud-card {
+    padding: 6px 10px;
+  }
+  .bike-shelf {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }

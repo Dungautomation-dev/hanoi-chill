@@ -1,71 +1,72 @@
 # Hà Nội Midnight Rush 🏍️💨
-**Bão Đêm Phố Cổ (Road Rash 3D Edition)**  
-*Tựa game đua xe máy đường phố 3D phong cách Road Rash huyền thoại kết hợp với khung cảnh đêm phố cổ Hà Nội.*
+**Bão Đêm Phố Cổ (Road Rash 3D Cinematic Edition - v4.0)**  
+> *Tựa game đua xe máy đường phố 3D phong cách Road Rash huyền thoại kết hợp với khung cảnh đêm phố cổ Hà Nội, hồ Gươm soi bóng Tháp Rùa và nhạc nền Synthwave Night Drive cực đã tai.*  
+> **Tác giả:** Dũng Automation • *"Chia sẻ để thành công"*
 
 ---
 
-## 🌐 Chơi Trực Tiếp Trên Trình Duyệt (Web & Mobile & Tay Cầm Gamepad)
+## 🌐 Chơi Trực Tiếp Trên Trình Duyệt (Web, Mobile & Gamepad)
 👉 **Link chơi trực tuyến:** [https://dungautomation-dev.github.io/hanoi-chill/](https://dungautomation-dev.github.io/hanoi-chill/)  
 👉 **Kho mã nguồn GitHub:** [https://github.com/Dungautomation-dev/hanoi-chill](https://github.com/Dungautomation-dev/hanoi-chill)
 
 ---
 
-## 🌟 Điểm Nổi Bật & Đồ Họa 3D Điện Ảnh
+## 🌟 Những Điểm Nâng Cấp Đột Phá (v4.0)
 
-### 🌃 1. Đồ Họa 3D Three.js Ánh Sáng Đêm Phố Cổ
-- **Mặt đường nhựa phản chiếu (Wet Asphalt):** Mặt đường 4 làn xe với vạch kẻ vàng phản quang, bóng nước lấp lánh dưới ánh đèn.
-- **Ánh sáng điện ảnh (Cinematic Lighting):**
-  - Đèn pha xe SpotLight thực tế rọi đường phía trước theo thời gian thực.
-  - Cột đèn cao áp ánh vàng ấm rải đều hai bên vỉa hè.
-  - Sương mù đêm Hà Nội huyền ảo (Atmospheric Night Fog).
-  - Dãy nhà ống phố cổ san sát cùng các biển hiệu Neon rực rỡ (*PHỞ BÁT ĐÀN, BIA HƠI HÀ NỘI, CAFE TRỨNG, TRÀ ĐÁ VỈA HÈ...*).
-  - Hàng cây xà cừ cổ thụ rợp bóng mát hai bên đường.
+### 🌃 1. Đồ Họa 3D Procedural Textures & Kiến Trúc Phố Cổ Indochine
+- **Mặt đường nhựa ướt đêm mưa (Cinematic Wet Asphalt):** Mặt đường phản chiếu ánh đèn cao áp, bóng nước loang lổ, vạch kẻ đường vàng đôi ở tim đường và vạch sang đường cho người đi bộ.
+- **Dãy nhà ống Indochine chân thực (TextureFactory):**
+  - Tường vàng vôi cổ kính loang lổ rêu phong đặc trưng phố cổ Hà Nội (`#f59e0b`, `#d97706`).
+  - Mái ngói vảy cá / ngói âm dương nung đỏ gạch phủ rêu thời gian.
+  - Cửa chớp louvered kiểu Pháp màu xanh lá cây (`#15803d`).
+  - Ban công sắt uốn nghệ thuật rực rỡ giàn hoa giấy hồng leo quanh hiên nhà.
+  - Hàng loạt đèn lồng đỏ giăng hiên tỏa ánh sáng vàng ấm áp.
+  - Biển hiệu Neon phố cổ rực rỡ: *Phở Bát Đàn, Cà Phê Trứng Giảng, Bia Hơi Hà Nội, Trà Đá Vỉa Hè, Chợ Đồng Xuân, Kem Tràng Tiền, Bún Chả Hàng Mành, Lụa Hàng Gai...*
 
-### ⚔️ 2. Cơ Chế Chiến Đấu "Đạp Nhau" Cực Đã (Road Rash Mechanics)
-- **Đạp Trái (<kbd>J</kbd> / Click Trái)** & **Đạp Phải (<kbd>K</kbd> / Click Phải)**:
-  - Khi chạy song song áp sát đối thủ, tung cú đạp mạnh khiến xe đối thủ mất thăng bằng, loạng choạng cày xước mặt đường và văng khỏi đường đua!
+### 🏯 2. Danh Thắng Hà Nội Ven Cung Đường Đua
+- **Hồ Gươm & Tháp Rùa Rực Sáng:** Cung đường đua mở ra góc nhìn thoáng đãng hướng về lòng hồ Gươm xanh ngọc bích, với ngọn Tháp Rùa cổ kính nổi bật giữa đảo cỏ hoa sen và cờ đỏ sao vàng tung bay.
+- **Cầu Long Biên & Cổng Ô Quan Chưởng:** Dấu ấn lịch sử ngàn năm của Kinh thành Thăng Long sừng sững bên đường đua đêm.
+- **Hàng cây xà cừ cổ thụ:** Những gốc xà cừ đại thụ xòe tán lá rộng che mát vỉa hè lát đá xanh.
+
+### ⚔️ 3. Cơ Chế Chiến Đấu "Đạp Nhau" Road Rash Cực Đã
+- **Đạp Trái (<kbd>J</kbd> / Click Chuột Trái)** & **Đạp Phải (<kbd>K</kbd> / Click Chuột Phải)**:
+  - Khi áp sát đối thủ, tung cú đạp mạnh khiến xe đối thủ loạng choạng, cày xước mặt đường, tóe lửa điện và văng khỏi đường đua!
   - Hiệu ứng tia lửa điện (Sparks Particles) bắn tung tóe kèm rung giật camera (Screen Shake) cực đã tay!
-  - Hạ gục đối thủ nhận điểm thưởng KNOCKOUT và hồi thanh Nitro Boost!
+  - Hạ gục đối thủ nhận ngay **+150 G** tiền thưởng KNOCKOUT và hồi thanh Nitro Boost!
 
-### 🚌 3. Giao Thông & Đối Thủ Phố Cổ Hài Hước
-- **Xe Buýt Hà Nội Số 01 / 02:** Những chiếc xe buýt vàng - đỏ to đùng lù lù trên làn đường đòi hỏi bạn phải lách tay lái điệu nghệ để tránh tông xe.
-- **5 Tay đua đối thủ khét tiếng:**
-  - *Hùng "Tổ Lái" (Xe Dream Đỏ)*
-  - *Tuấn "Wave Chiến" (Xe Wave Xanh)*
-  - *Lan "Bão Đêm" (Xe Cub 50 Độ)*
-  - *Dũng "Pô Nổ" (Xe Sirius Đen)*
-  - *Sơn "Liều Mạng" (Xe Exciter Đỏ)*
+### 🎵 4. Âm Thanh Synthwave Night Drive & Tiếng Pô Xe Độc Lập
+- **Nhạc nền Synthwave Driving 120 BPM:** Giai điệu điện tử retro hoài niệm kết hợp âm hưởng ngũ cung (Web Audio API 100% native, không lo tải chậm hay mất kết nối).
+- **Tiếng pô độ gầm rú chân thực:** Tần số âm thanh biến đổi linh hoạt theo vòng tua máy ga (RPM).
+- **Còi bim bim phố cổ (<kbd>Phím H</kbd>):** Âm thanh còi xe máy thân thuộc của đường phố Hà Nội.
 
-### 🔊 4. Âm Thanh Retro Synthesizer Độc Lập
-- Tiếng pô xe máy gầm rú tăng cao độ theo vòng tua ga (RPM modulation).
-- Tiếng đạp xe va quẹt côm cốp kim loại.
-- Tiếng còi xe máy phố cổ bíp bíp inh ỏi (<kbd>Phím H</kbd>).
+### 🏁 5. Thanh Tiến Độ Cuộc Đua Thời Gian Thực (Live Race Tracker)
+- Thanh Minimap thời gian thực trên đỉnh màn hình hiển thị trực quan vị trí của bạn (`🏍️`) và 5 tay đua bot đối thủ dọc theo chặng đường 2.500m về đích!
+- **Chế độ Ngắm Cảnh / Chụp Ảnh (<kbd>F2</kbd>):** Ẩn toàn bộ HUD để bạn bắt trọn khoảnh khắc xe phóng xé gió trong đêm phố cổ.
 
 ---
 
 ## 🎮 Hướng Dẫn Điều Khiển
 
 ### ⌨️ Bàn Phím & Chuột:
-- **Tăng ga / Phóng nhanh:** <kbd>W</kbd> hoặc <kbd>Mũi tên lên</kbd>
-- **Phanh xe:** <kbd>S</kbd> hoặc <kbd>Mũi tên xuống</kbd>
-- **Lượn trái / Lượn phải:** <kbd>A</kbd> / <kbd>D</kbd> hoặc <kbd>Mũi tên trái / phải</kbd>
+- **Tăng ga / Phóng nhanh:** <kbd>W</kbd> hoặc <kbd>▲</kbd>
+- **Phanh xe:** <kbd>S</kbd> hoặc <kbd>▼</kbd>
+- **Lượn Trái / Phải (Chuẩn xác theo tay lái):** <kbd>A</kbd> / <kbd>D</kbd> hoặc <kbd>◀</kbd> / <kbd>▶</kbd>
 - **Đạp bên trái:** <kbd>J</kbd> hoặc <kbd>Click Chuột Trái</kbd>
 - **Đạp bên phải:** <kbd>K</kbd> hoặc <kbd>Click Chuột Phải</kbd>
-- **Nitro Boost (Tăng tốc xé gió):** <kbd>Shift</kbd>
-- **Bấm còi bim bim:** <kbd>H</kbd>
+- **Nitro Boost (Xịt lửa pô tăng tốc):** <kbd>Shift</kbd> hoặc <kbd>Space</kbd>
+- **Bấm còi xe bim bim:** <kbd>H</kbd>
+- **Bật / Tắt Hướng dẫn phím tắt:** <kbd>F1</kbd>
+- **Chế độ Ngắm Cảnh (Chụp ảnh):** <kbd>F2</kbd>
 
 ### 🎮 Tay Cầm (Gamepad Xbox / PlayStation):
 - **Bẻ lái:** Cần Analog Trái hoặc D-Pad.
-- **Ga / Phanh:** Nút <kbd>RT</kbd> / <kbd>LT</kbd> (hoặc nút <kbd>A</kbd> / <kbd>B</kbd>).
-- **Đạp Trái:** Nút <kbd>X</kbd> (hoặc ⬛ trên PS).
-- **Đạp Phải:** Nút <kbd>B</kbd> (hoặc 🔴 trên PS).
-- **Nitro Boost:** Nút <kbd>RB</kbd>.
+- **Ga / Phanh:** <kbd>RT</kbd> / <kbd>LT</kbd> (hoặc <kbd>A</kbd> / <kbd>B</kbd>).
+- **Đạp Trái / Phải:** <kbd>X</kbd> / <kbd>B</kbd> (hoặc ⬛ / 🔴 trên PS).
+- **Nitro Boost:** <kbd>RB</kbd>.
 
 ### 📱 Màn Hình Cảm Ứng (Điện Thoại):
-- Tự động hiển thị bàn đạp Ga, Phanh, Nút Rẽ và 2 Nút Đạp Trái / Đạp Phải to rõ ở hai góc màn hình!
+- Tự động hiển thị các nút Ga, Phanh, Trái, Phải, Đạp Trái, Đạp Phải và Nitro to rõ ở 2 góc dưới màn hình!
 
 ---
 
-## 📄 Bản Quyền
-- Được phát hành theo giấy phép **MIT License**.
-- Đồ họa Three.js 3D được render thời gian thực (Zero asset nặng, tải cực nhanh trong 1 giây).
+*Phát triển bởi **Dũng Automation**.*
