@@ -70,3 +70,9 @@
 ---
 
 *Phát triển bởi **Dũng Automation**.*
+
+---
+
+## Stars ⭐
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Dungautomation-dev/hanoi-chill&type=Date)](https://star-history.com/#Dungautomation-dev/hanoi-chill&Date)
